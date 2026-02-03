@@ -6,6 +6,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerLogin from './components/owner/OwnerLogin';
 import OwnerDashboard from './components/owner/OwnerDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import StaffDashboard from './components/staff/StaffDashboard';
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -75,6 +76,7 @@ function App() {
             isOwner ? <OwnerDashboard /> : <Navigate to="/owner/login" />
           } /> */}
                   {/* <Route path="/" element={<Navigate to="/owner/login" />} /> */}
+<Route path="/staff/:code" element={<StaffDashboard />} />
 
 // In App.js - Update owner routes
 <Route path="/owner/login" element={<OwnerLogin />} />

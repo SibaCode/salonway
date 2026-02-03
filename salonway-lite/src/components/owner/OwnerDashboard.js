@@ -10,6 +10,7 @@ import {
   query, 
   where, 
   orderBy, 
+  deleteDoc,  // ADD THIS
   limit 
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -429,7 +430,8 @@ const DashboardContent = ({ salonData, ownerData, salonId }) => {
     formResponses: 0,
     galleryViews: 0
   });
-  
+    const [activeStaff, setActiveStaff] = useState([]);
+
   const [liveFeed, setLiveFeed] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -439,31 +441,51 @@ const DashboardContent = ({ salonData, ownerData, salonId }) => {
     const interval = setInterval(fetchDashboardData, 30000);
     return () => clearInterval(interval);
   }, []);
-
   const fetchDashboardData = async () => {
     try {
       // 1. Count staff active now (clocked in today & not clocked out)
-      // For now, use total staff count (we'll implement clock-in later)
       const staffSnapshot = await getDocs(collection(db, 'salons', salonId, 'staff'));
       const staffActive = staffSnapshot.size;
 
-      // 2. Calculate today's revenue - start with 0 for now
+      // 2. Get active staff (clocked in)
+      try {
+        const q = query(
+          collection(db, 'clockRecords'),
+          where('salonId', '==', salonId),
+          where('clockOut', '==', null)
+        );
+        
+        const snapshot = await getDocs(q);
+        const active = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setActiveStaff(active);
+        
+        // Update staffActive count to only show actually clocked-in staff
+        dashboardStats.staffActive = active.length;
+      } catch (error) {
+        console.log('No clock records yet:', error);
+        setActiveStaff([]);
+      }
+
+      // 3. Calculate today's revenue - start with 0 for now
       const todayRevenue = 0;
 
-      // 3. Count today's form responses - start with 0 for now
+      // 4. Count today's form responses - start with 0 for now
       const formResponses = 0;
 
-      // 4. Count today's gallery views - start with 0 for now
+      // 5. Count today's gallery views - start with 0 for now
       const galleryViews = 0;
 
       setDashboardStats({
-        staffActive,
+        staffActive: dashboardStats.staffActive,
         todayRevenue,
         formResponses,
         galleryViews
       });
 
-      // 5. Build live feed from recent activities
+      // 6. Build live feed from recent activities
       await buildLiveFeed();
 
     } catch (error) {
@@ -473,7 +495,61 @@ const DashboardContent = ({ salonData, ownerData, salonId }) => {
       setLoading(false);
     }
   };
+  // const fetchDashboardData = async () => {
+  //   try {
+  //     // 1. Count staff active now (clocked in today & not clocked out)
+  //     // For now, use total staff count (we'll implement clock-in later)
+  //     const staffSnapshot = await getDocs(collection(db, 'salons', salonId, 'staff'));
+  //     const staffActive = staffSnapshot.size;
 
+  //     // 2. Calculate today's revenue - start with 0 for now
+  //     const todayRevenue = 0;
+
+  //     // 3. Count today's form responses - start with 0 for now
+  //     const formResponses = 0;
+
+  //     // 4. Count today's gallery views - start with 0 for now
+  //     const galleryViews = 0;
+
+  //     setDashboardStats({
+  //       staffActive,
+  //       todayRevenue,
+  //       formResponses,
+  //       galleryViews
+  //     });
+
+  //     // 5. Build live feed from recent activities
+  //     await buildLiveFeed();
+
+  //   } catch (error) {
+  //     console.log('No data yet, showing zeros:', error);
+  //     // Keep zeros if no data
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+// useEffect(() => {
+//   const fetchActiveStaff = async () => {
+//     try {
+//       const q = query(
+//         collection(db, 'clockRecords'),
+//         where('salonId', '==', salonId),
+//         where('clockOut', '==', null)
+//       );
+      
+//       const snapshot = await getDocs(q);
+//       const active = snapshot.docs.map(doc => doc.data());
+//       setActiveStaff(active);
+//     } catch (error) {
+//       console.error('Error fetching active staff:', error);
+//     }
+//   };
+  
+//   fetchActiveStaff();
+//   // Refresh every 30 seconds
+//   const interval = setInterval(fetchActiveStaff, 30000);
+//   return () => clearInterval(interval);
+// }, [salonId]);
   const buildLiveFeed = async () => {
     const feed = [];
     const now = new Date();
@@ -510,7 +586,7 @@ const DashboardContent = ({ salonData, ownerData, salonId }) => {
   const statItems = [
     {
       title: 'Staff Active',
-      value: dashboardStats.staffActive,
+     value: activeStaff.length, // Use activeStaff.length instead of dashboardStats.staffActive
       icon: '👥',
       color: '#3B82F6',
       bgColor: '#EFF6FF',
@@ -651,7 +727,7 @@ const DashboardContent = ({ salonData, ownerData, salonId }) => {
       </div>
 
       {/* Quick Actions */}
-      <div style={{ padding: '0 20px 20px' }}>
+      {/* <div style={{ padding: '0 20px 20px' }}>
         <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1a1a1a' }}>
           Quick Actions
         </h3>
@@ -692,22 +768,21 @@ const DashboardContent = ({ salonData, ownerData, salonId }) => {
             </button>
           ))}
         </div>
-      </div>
+      </div> */}
     </>
   );
 };
 
 // Staff Content Component
+// Staff Content Component - ULTRA SIMPLE MVP
 const StaffContent = ({ salonId, ownerData }) => {
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newStaff, setNewStaff] = useState({
     name: '',
-    role: '',
-    contact: '',
-    specialty: '',
-    hourlyRate: ''
+    phone: '',
+    email: ''
   });
 
   useEffect(() => {
@@ -735,20 +810,20 @@ const StaffContent = ({ salonId, ownerData }) => {
   };
 
   const handleAddStaff = async () => {
-    if (!newStaff.name.trim()) {
-      alert('Please enter staff name');
+    if (!newStaff.name.trim() || !newStaff.phone.trim()) {
+      alert('Name and phone number are required');
       return;
     }
 
     try {
       const uniqueCode = generateUniqueCode();
       const staffData = {
-        ...newStaff,
+        name: newStaff.name.trim(),
+        phone: newStaff.phone.trim(),
+        email: newStaff.email.trim() || '',
         linkCode: uniqueCode,
         isActive: true,
-        createdAt: new Date().toISOString(),
-        servicesCompleted: 0,
-        totalRevenue: 0
+        createdAt: new Date().toISOString()
       };
 
       // Add to Firestore
@@ -757,13 +832,13 @@ const StaffContent = ({ salonId, ownerData }) => {
       // Refresh staff list
       await fetchStaff();
       
-      // Reset form
-      setNewStaff({ name: '', role: '', contact: '', specialty: '', hourlyRate: '' });
+      // Reset form and close
+      setNewStaff({ name: '', phone: '', email: '' });
       setShowAddForm(false);
       
       // Show success with link
       const staffLink = `${window.location.origin}/staff/${uniqueCode}`;
-      alert(`Staff added! Share this link with them:\n\n${staffLink}`);
+      alert(`Staff added successfully!\n\nShare this link with them:\n${staffLink}\n\nThey can use it to clock in/out.`);
       
     } catch (error) {
       console.error('Error adding staff:', error);
@@ -771,45 +846,157 @@ const StaffContent = ({ salonId, ownerData }) => {
     }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert('Link copied to clipboard!');
+  const handleDeleteStaff = async (staffId, staffName) => {
+    if (!window.confirm(`Are you sure you want to remove ${staffName}?`)) {
+      return;
+    }
+
+    try {
+      // In MVP, we'll just delete from Firestore
+      // Later we can do soft delete (isActive: false)
+      await deleteDoc(doc(db, 'salons', salonId, 'staff', staffId));
+      
+      // Refresh staff list
+      await fetchStaff();
+      alert(`${staffName} has been removed.`);
+      
+    } catch (error) {
+      console.error('Error deleting staff:', error);
+      alert('Failed to delete staff. Please try again.');
+    }
   };
+
+const copyToClipboard = (text, event) => {
+  navigator.clipboard.writeText(text);
+  
+  // Change button appearance to show success
+  const btn = event.currentTarget;
+  const originalText = btn.textContent;
+  const originalBackground = btn.style.background;
+  const originalColor = btn.style.color;
+  
+  btn.textContent = 'Copied!';
+  btn.style.background = '#10B981';
+  btn.style.color = 'white';
+  
+  // Revert after 1.5 seconds
+  setTimeout(() => {
+    btn.textContent = originalText;
+    btn.style.background = originalBackground;
+    btn.style.color = originalColor;
+  }, 1500);
+};
 
   if (loading) {
     return (
-      <div className="loading-container">
+      <div style={{ textAlign: 'center', padding: '40px 20px' }}>
         <div className="loading-spinner"></div>
-        <p className="loading-text">Loading staff...</p>
+        <p style={{ color: '#6c757d', marginTop: '10px' }}>Loading staff...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-3">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>Staff Members</h2>
+    <div style={{ padding: '20px' }}>
+      {/* Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '24px' 
+      }}>
+        <div>
+          <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 4px 0' }}>
+            Staff Members
+          </h2>
+          <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
+            Add staff and share their clock-in links
+          </p>
+        </div>
         <button 
-          className="empty-state-btn" 
-          style={{ padding: '10px 16px' }}
           onClick={() => setShowAddForm(true)}
+          style={{
+            padding: '10px 16px',
+            background: 'var(--primary-color)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          <FaPlus style={{ marginRight: '8px' }} /> Add Staff
+          <span>👤</span> Add Staff
         </button>
       </div>
 
       {/* Add Staff Form Modal */}
       {showAddForm && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>Add New Staff</h2>
-              <button className="close-btn" onClick={() => setShowAddForm(false)}>×</button>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '400px',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '20px',
+              borderBottom: '1px solid #e9ecef',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                Add New Staff
+              </h3>
+              <button 
+                onClick={() => setShowAddForm(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6c757d',
+                  padding: '0',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ×
+              </button>
             </div>
-            <div className="modal-body">
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Name Field */}
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}>
                     Full Name *
                   </label>
                   <input
@@ -824,69 +1011,53 @@ const StaffContent = ({ salonId, ownerData }) => {
                       borderRadius: '8px',
                       fontSize: '16px'
                     }}
+                    autoFocus
                   />
                 </div>
 
+                {/* Phone Field */}
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    Role
-                  </label>
-                  <select
-                    value={newStaff.role}
-                    onChange={(e) => setNewStaff({...newStaff, role: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #e9ecef',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      background: 'white'
-                    }}
-                  >
-                    <option value="">Select Role</option>
-                    <option value="Senior Stylist">Senior Stylist</option>
-                    <option value="Stylist">Stylist</option>
-                    <option value="Junior Stylist">Junior Stylist</option>
-                    <option value="Nail Technician">Nail Technician</option>
-                    <option value="Beauty Therapist">Beauty Therapist</option>
-                    <option value="Receptionist">Receptionist</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    Specialty
-                  </label>
-                  <select
-                    value={newStaff.specialty}
-                    onChange={(e) => setNewStaff({...newStaff, specialty: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #e9ecef',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      background: 'white'
-                    }}
-                  >
-                    <option value="">Select Specialty</option>
-                    <option value="Hair">Hair</option>
-                    <option value="Nails">Nails</option>
-                    <option value="Beauty">Beauty</option>
-                    <option value="Spa">Spa</option>
-                    <option value="Makeup">Makeup</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    Contact (Email/Phone)
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}>
+                    Phone Number *
                   </label>
                   <input
-                    type="text"
-                    value={newStaff.contact}
-                    onChange={(e) => setNewStaff({...newStaff, contact: e.target.value})}
-                    placeholder="sarah@salon.com or +1234567890"
+                    type="tel"
+                    value={newStaff.phone}
+                    onChange={(e) => setNewStaff({...newStaff, phone: e.target.value})}
+                    placeholder="1234567890"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '8px',
+                      fontSize: '16px'
+                    }}
+                  />
+                  <small style={{ color: '#6c757d', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    Used for WhatsApp notifications
+                  </small>
+                </div>
+
+                {/* Email Field (Optional) */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}>
+                    Email (Optional)
+                  </label>
+                  <input
+                    type="email"
+                    value={newStaff.email}
+                    onChange={(e) => setNewStaff({...newStaff, email: e.target.value})}
+                    placeholder="sarah@salon.com"
                     style={{
                       width: '100%',
                       padding: '12px',
@@ -897,25 +1068,7 @@ const StaffContent = ({ salonId, ownerData }) => {
                   />
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    Hourly Rate ($)
-                  </label>
-                  <input
-                    type="number"
-                    value={newStaff.hourlyRate}
-                    onChange={(e) => setNewStaff({...newStaff, hourlyRate: e.target.value})}
-                    placeholder="65"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #e9ecef',
-                      borderRadius: '8px',
-                      fontSize: '16px'
-                    }}
-                  />
-                </div>
-
+                {/* Action Buttons */}
                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                   <button
                     onClick={() => setShowAddForm(false)}
@@ -947,7 +1100,7 @@ const StaffContent = ({ salonId, ownerData }) => {
                       cursor: 'pointer'
                     }}
                   >
-                    Add Staff
+                    Add Staff Member
                   </button>
                 </div>
               </div>
@@ -957,90 +1110,105 @@ const StaffContent = ({ salonId, ownerData }) => {
       )}
 
       {/* Staff List */}
-     {staff.length === 0 ? (
-  <div className="empty-state">
-    <div className="empty-state-icon">
-      <FaUsers />
-    </div>
-    <h3>No Staff Members</h3>
-    <p>Add your first staff member to get started</p>
-    <button 
-      className="empty-state-btn"
-      onClick={() => setShowAddForm(true)}
-    >
-      <FaPlus style={{ marginRight: '8px' }} /> Add Staff
-    </button>
-  </div>
-) : (
-  <div className="staff-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-    {staff.map((member) => {
-      const staffLink = `${window.location.origin}/staff/${member.linkCode}`;
-      return (
-        <div 
-          key={member.id}
-          className="stat-card"
-          style={{ cursor: 'pointer', margin: 0 }}
-        >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div 
-                    className="owner-avatar"
-                    style={{ 
-                      background: member.color || '#6c757d',
-                      width: '50px',
-                      height: '50px'
-                    }}
-                  >
+      {staff.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '40px 20px',
+          background: '#f8f9fa',
+          borderRadius: '12px',
+          border: '2px dashed #dee2e6',
+          color: '#1a1a1a',
+        }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            background: '#e9ecef',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '24px',
+            margin: '0 auto 16px'
+          }}>
+            👤
+          </div>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' , color: '#1a1a1a'}}>
+            No Staff Members Yet
+          </h3>
+          <p style={{ color: '#6c757d', fontSize: '14px', margin: '0 0 20px 0' }}>
+            Add your first staff member to get started
+          </p>
+          <button 
+            onClick={() => setShowAddForm(true)}
+            style={{
+              padding: '10px 20px',
+              background: 'var(--primary-color)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Add First Staff Member
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {staff.map((member) => {
+            const staffLink = `${window.location.origin}/staff/${member.linkCode}`;
+            return (
+              <div 
+                key={member.id}
+                style={{
+                  background: 'white',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  position: 'relative',
+                  color: '#1a1a1a' 
+                }}
+              >
+                {/* Staff Info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    background: 'var(--primary-color)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#1a1a1a' ,
+                    fontWeight: '600',
+                    fontSize: '16px',
+                    flexShrink: 0
+                  }}>
                     {member.name?.charAt(0) || 'S'}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '500' }}>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '500' ,color: '#1a1a1a' }}>
                       {member.name}
                     </h4>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#6c757d' }}>
-                      {member.role || 'Staff Member'}
-                    </p>
-                    {member.specialty && (
-                      <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6c757d' }}>
-                        Specialty: {member.specialty}
-                      </p>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyToClipboard(staffLink);
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        background: '#e9ecef',
-                        color: '#495057',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <FaCopy /> Copy Link
-                    </button>
-                    <span style={{
-                      fontSize: '12px',
-                      padding: '4px 8px',
-                      background: member.isActive ? '#D4EDDA' : '#F8D7DA',
-                      borderRadius: '12px',
-                      color: member.isActive ? '#155724' : '#721C24'
-                    }}>
-                      {member.isActive ? 'Active' : 'Inactive'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {member.phone && (
+                        <span style={{ fontSize: '14px', color: '#495057', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          📞 {member.phone}
+                        </span>
+                      )}
+                      {member.email && (
+                        <span style={{ fontSize: '14px', color: '#495057', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          ✉️ {member.email}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                
+
                 {/* Staff Link Display */}
                 <div style={{ 
-                  marginTop: '12px', 
+                  marginBottom: '12px', 
                   padding: '8px', 
                   background: '#f8f9fa', 
                   borderRadius: '6px',
@@ -1050,57 +1218,48 @@ const StaffContent = ({ salonId, ownerData }) => {
                 }}>
                   {staffLink}
                 </div>
-                
-                {/* Quick Actions */}
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+
+                {/* Action Buttons - ONLY COPY & DELETE */}
+                <div style={{ display: 'flex', gap: '8px' }}>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // WhatsApp share
-                      const message = `Hi ${member.name}, here's your SalonWay access link: ${staffLink}`;
-                      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                    }}
+               onClick={(e) => copyToClipboard(staffLink, e)}  // ✅ Pass event as second parameter
                     style={{
-                      flex: 1,
+                      flex: 2,
                       padding: '8px',
-                      background: '#25D366',
-                      color: 'white',
+                      background: '#e9ecef',
+                      color: '#495057',
                       border: 'none',
                       borderRadius: '6px',
-                      fontSize: '12px',
+                      fontSize: '14px',
+                      fontWeight: '500',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '4px'
+                      gap: '6px'
                     }}
                   >
-                    <FaWhatsapp /> WhatsApp
+                    📋 Copy Link
                   </button>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Email share
-                      const subject = `Your SalonWay Access Link`;
-                      const body = `Hi ${member.name},\n\nHere's your SalonWay access link:\n\n${staffLink}\n\nUse this link to clock in/out and log your work.\n\nBest regards,\n${ownerData?.name || 'Salon Owner'}`;
-                      window.open(`mailto:${member.contact}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                    }}
+                    onClick={() => handleDeleteStaff(member.id, member.name)}
                     style={{
                       flex: 1,
                       padding: '8px',
-                      background: '#4285F4',
-                      color: 'white',
+                      background: '#fee2e2',
+                      color: '#dc2626',
                       border: 'none',
                       borderRadius: '6px',
-                      fontSize: '12px',
+                      fontSize: '14px',
+                      fontWeight: '500',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '4px'
+                      gap: '6px'
                     }}
                   >
-                    <FaEnvelope /> Email
+                    🗑️ Delete
                   </button>
                 </div>
               </div>
@@ -1111,7 +1270,6 @@ const StaffContent = ({ salonId, ownerData }) => {
     </div>
   );
 };
-
 // Services Content Component
 const ServicesContent = ({ salonId }) => (
   <div className="empty-state">
@@ -1182,7 +1340,8 @@ const LinksContent = ({ salonId, salonData }) => (
           fontFamily: 'monospace',
           fontSize: '14px',
           wordBreak: 'break-all',
-          marginBottom: '12px'
+          marginBottom: '12px',
+          color: '#1a1a1a' 
         }}>
           salonway.com/c/{salonData?.id || 'your-salon'}
         </div>
