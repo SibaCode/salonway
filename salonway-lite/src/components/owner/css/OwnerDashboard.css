@@ -2,11 +2,15 @@
 /* Import Poppins font */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
+* {
+  font-family: 'Poppins', sans-serif !important;
+}
+
 .owner-dashboard {
   font-family: 'Poppins', sans-serif;
   min-height: 100vh;
   background: #f8f9fa;
-  padding-bottom: 70px; /* Space for bottom nav */
+  padding-bottom: 70px; /* Space for bottom nav on mobile */
 }
 
 /* Header Styles */
@@ -98,7 +102,7 @@
   line-height: 1.5;
 }
 
-/* Stats Grid */
+/* Stats Grid - Mobile: 2 columns, Desktop: 4 columns */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -238,7 +242,6 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Poppins', sans-serif;
 }
 
 .setup-btn:hover {
@@ -324,7 +327,6 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Poppins', sans-serif;
 }
 
 .empty-state-btn:hover {
@@ -332,7 +334,7 @@
   transform: translateY(-1px);
 }
 
-/* Bottom Navigation */
+/* Bottom Navigation - Only show on mobile */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -380,32 +382,6 @@
   font-size: 11px;
   font-weight: 500;
   transition: all 0.2s;
-}
-
-.add-salon-btn {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  z-index: 1001;
-  transition: all 0.2s;
-}
-
-.add-salon-btn:hover {
-  transform: translateX(-50%) scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 /* Loading States */
@@ -506,48 +482,250 @@
   max-height: calc(80vh - 80px);
 }
 
-/* Responsive Design */
+/* ==================== */
+/* DESKTOP STYLES */
+/* ==================== */
+
 @media (min-width: 768px) {
   .owner-dashboard {
-    max-width: 768px;
-    margin: 0 auto;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  
-  .content-grid {
-    flex-direction: row;
-  }
-  
-  .content-card {
-    flex: 1;
-  }
-}
-
-@media (min-width: 1024px) {
-  .owner-dashboard {
-    max-width: 100%;
-    padding-left: 280px; /* Space for sidebar on desktop */
+    display: flex;
     padding-bottom: 0;
   }
-  
-  .bottom-nav {
-    display: none; /* Hide bottom nav on desktop */
-  }
-  
+
   /* Desktop Sidebar */
-  .owner-dashboard::before {
-    content: '';
+  .desktop-sidebar {
+    width: 250px;
+    background: #fff;
+    color: white;
+    min-height: 100vh;
     position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
-    width: 280px;
-    background: #1a1a1a;
+    overflow-y: auto;
     z-index: 100;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 30px 20px 20px;
+    border-bottom: 1px solid #2d2d2d;
+  }
+
+  .salon-logo {
+    width: 50px;
+    height: 50px;
+    background: var(--primary-color);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: white;
+  }
+
+  .salon-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+
+  .owner-name {
+    font-size: 14px;
+    color: #9ca3af;
+  }
+
+  .sidebar-nav {
+    padding: 20px 0;
+    flex: 1;
+  }
+
+  .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    color: #9ca3af;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+
+  .sidebar-nav-item:hover {
+    background: #2d2d2d;
+    color: white;
+  }
+
+  .sidebar-nav-item.active {
+    background: #2d2d2d;
+    color: white;
+    border-left-color: var(--primary-color);
+  }
+
+  .sidebar-nav-icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+  }
+
+  .sidebar-nav-label {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid #2d2d2d;
+  }
+
+  .logout-btn {
+    width: 100%;
+    padding: 12px;
+    background: #dc2626;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+
+  .logout-btn:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+  }
+
+  /* Main Content Area */
+  .main-content {
+    flex: 1;
+    margin-left: 250px; /* Match sidebar width */
+    min-height: 100vh;
+    background: #f8f9fa;
+  }
+
+  /* Hide mobile bottom nav on desktop */
+  .bottom-nav {
+    display: none;
+  }
+
+  /* Update header for desktop */
+  .owner-header {
+    position: static;
+    padding: 20px 30px;
+    border-bottom: 1px solid #e9ecef;
+    background: white;
+  }
+
+  .owner-header-left h1 {
+    font-size: 24px;
+  }
+
+  /* Update stats grid for desktop */
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 30px;
+  }
+
+  /* Update welcome banner for desktop */
+  .welcome-banner {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 30px;
+  }
+
+  .welcome-banner h2 {
+    font-size: 28px;
+  }
+
+  /* Update content cards for desktop */
+  .content-grid {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 30px;
+    flex-direction: row;
+  }
+
+  .content-card {
+    flex: 1;
+  }
+
+  /* Update empty states for desktop */
+  .empty-state {
+    padding: 60px 40px;
+  }
+
+  .empty-state-icon {
+    font-size: 64px;
+  }
+
+  .empty-state h3 {
+    font-size: 22px;
+  }
+
+  .empty-state p {
+    font-size: 16px;
+  }
+
+  /* Make modals larger on desktop */
+  .modal-content {
+    max-width: 500px;
+  }
+}
+
+/* Tablet styles (768px to 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .desktop-sidebar {
+    width: 220px;
+  }
+
+  .main-content {
+    margin-left: 220px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 20px;
+  }
+
+  .content-grid {
+    flex-direction: column;
+    padding: 0 20px;
+  }
+}
+
+/* Large Desktop styles (1200px and up) */
+@media (min-width: 1200px) {
+  .desktop-sidebar {
+    width: 280px;
+  }
+
+  .main-content {
+    margin-left: 280px;
+  }
+
+  .stats-grid,
+  .welcome-banner,
+  .content-grid {
+    max-width: 1400px;
+  }
+
+  .stat-card {
+    padding: 25px;
+  }
+
+  .stat-text .stat-value {
+    font-size: 28px;
   }
 }
 
@@ -563,3 +741,75 @@
 .mt-4 { margin-top: 24px; }
 .p-3 { padding: 16px; }
 .p-4 { padding: 24px; }
+
+/* Ensure all text uses Poppins */
+body, button, input, select, textarea {
+  font-family: 'Poppins', sans-serif !important;
+}
+
+/* Remove any other font-family declarations */
+h1, h2, h3, h4, h5, h6, p, span, div {
+  font-family: 'Poppins', sans-serif !important;
+}
+/* Media Query Utility Classes */
+.mobile-only {
+  display: block;
+}
+
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+}
+
+/* Ensure content is centered on desktop */
+@media (min-width: 768px) {
+  .main-content > main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 30px;
+  }
+  
+  /* Staff list grid on desktop */
+  .staff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+}
+
+/* Improve form inputs on desktop */
+@media (min-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important; /* Prevent zoom on mobile */
+  }
+  
+  .modal-content {
+    max-width: 500px !important;
+  }
+  
+  /* Better button sizing on desktop */
+  button {
+    padding: 12px 20px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* Fix emoji sizing on desktop */
+@media (min-width: 768px) {
+  .stat-icon {
+    font-size: 24px !important;
+  }
+  
+  .nav-icon, .sidebar-nav-icon {
+    font-size: 20px !important;
+  }
+}
