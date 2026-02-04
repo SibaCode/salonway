@@ -1,122 +1,54 @@
-// src/App.js
-import React, { useState, useEffect } from 'react';
+// src/App.js - SIMPLIFIED VERSION
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import AdminLogin from './components/admin/AdminLogin';
-import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerLogin from './components/owner/OwnerLogin';
 import OwnerDashboard from './components/owner/OwnerDashboard';
-import ProtectedRoute from './components/ProtectedRoute';
 import StaffDashboard from './components/staff/StaffDashboard';
 import ClientConsultation from './components/client/ClientConsultation';
 import CataloguePage from './components/client/CataloguePage';
 
 function App() {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(false);
-  }, []);
-
-  if (loading) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        flexDirection: 'column',
-        gap: '20px'
-      }}>
-        <div style={{ 
-          width: '50px', 
-          height: '50px', 
-          border: '4px solid #E5E7EB',
-          borderTopColor: '#3B82F6',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-        <p style={{ color: '#666' }}>Loading SalonWay...</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
   return (
     <div className="App">
       <Routes>
-        {/* Public Catalogue Route */}
+        {/* Public Routes */}
         <Route path="/catalogue/:salonId" element={<CataloguePage />} />
-        
-        {/* Admin Routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        
-        <Route 
-          path="/admin" 
-          element={
-            <ProtectedRoute type="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Owner Routes */}
-        <Route path="/owner/login" element={<OwnerLogin />} />
-        <Route path="/owner/login/:salonId" element={<OwnerLogin />} />
-        
-        {/* Protect both dashboard routes */}
-        <Route 
-          path="/owner/dashboard" 
-          element={
-            <ProtectedRoute type="owner">
-              <OwnerDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/owner/dashboard/:salonId" 
-          element={
-            <ProtectedRoute type="owner">
-              <OwnerDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Staff and Client Public Routes */}
         <Route path="/staff/:code" element={<StaffDashboard />} />
         <Route path="/client/:salonId" element={<ClientConsultation />} />
         
-        {/* Root redirect based on localStorage */}
+        {/* Owner Routes */}
+        <Route path="/owner/login" element={<OwnerLogin />} />
+        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+        
+        {/* Root redirect - SIMPLE */}
         <Route 
           path="/" 
-          element={<RootRedirect />} 
+          element={
+            <NavigateToDashboard />
+          } 
         />
         
-        {/* 404 Page */}
+        {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
   );
 }
 
-// Helper component for root redirect
-function RootRedirect() {
-  const isAdmin = localStorage.getItem('admin') === 'true';
-  const isOwner = localStorage.getItem('owner') === 'true';
-  const salonId = localStorage.getItem('salonId');
+// Simple redirect component
+function NavigateToDashboard() {
+  const salonOwner = JSON.parse(localStorage.getItem('salonOwner') || 'null');
   
-  if (isAdmin) {
-    return <Navigate to="/admin" replace />;
-  } else if (isOwner && salonId) {
-    return <Navigate to={`/owner/dashboard/${salonId}`} replace />;
-  } else if (isOwner) {
+  if (salonOwner && salonOwner.salonId) {
+    // User is logged in, go to dashboard
     return <Navigate to="/owner/dashboard" replace />;
   } else {
-    return <Navigate to="/admin/login" replace />;
+    // Not logged in, go to login
+    return <Navigate to="/owner/login" replace />;
   }
 }
 
-// 404 Page Component
+// 404 Page Component (keep as is)
 function NotFoundPage() {
   return (
     <div style={{ 

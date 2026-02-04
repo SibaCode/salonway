@@ -1,8 +1,6 @@
-// src/components/owner/OwnerLogin.js - MODIFIED
+// src/components/owner/OwnerLogin.js - FIXED NAVIGATION
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase';
 import { FaCut, FaLock, FaEnvelope } from 'react-icons/fa';
 
 // Hardcoded valid credentials
@@ -17,11 +15,10 @@ const VALID_CREDENTIALS = [
   {
     email: 'client@salon.com',
     password: 'salon123',
-    salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg', // Same salon or different
+    salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg',
     salonName: 'Client Salon',
     ownerName: 'Salon Owner'
   }
-  // Add more as needed
 ];
 
 const OwnerLogin = () => {
@@ -33,6 +30,7 @@ const OwnerLogin = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    console.log('🔐 Login attempt started...');
     setLoading(true);
     setError('');
 
@@ -40,78 +38,81 @@ const OwnerLogin = () => {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
+      console.log('📧 Checking credentials for:', email.trim());
+      
       // 1. Check hardcoded credentials first (FAST)
       const validCredential = VALID_CREDENTIALS.find(
         cred => cred.email === email.trim() && cred.password === password
       );
 
-      if (validCredential) {
-        console.log('✅ Login successful with hardcoded credentials');
-        
-        // Save to localStorage
-        localStorage.setItem('salonOwner', JSON.stringify({
-          salonId: validCredential.salonId,
-          email: validCredential.email,
-          name: validCredential.ownerName,
-          salonName: validCredential.salonName,
-          timestamp: new Date().toISOString()
-        }));
-
-        navigate('/owner/dashboard');
-        return;
-      }
-
-      // 2. Fallback to Firestore check (for your own testing)
-      console.log('Checking Firestore for credentials...');
-      const q = query(
-        collection(db, 'salons'),
-        where('ownerEmail', '==', email.toLowerCase().trim())
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
+      if (!validCredential) {
+        console.log('❌ Invalid credentials');
         setError('Invalid email or password');
         setLoading(false);
         return;
       }
 
-      const salonDoc = querySnapshot.docs[0];
-      const salonData = salonDoc.data();
-
-      if (salonData.ownerPassword !== password) {
-        setError('Invalid email or password');
-        setLoading(false);
-        return;
-      }
-
-      // Save to localStorage
-      localStorage.setItem('salonOwner', JSON.stringify({
-        salonId: salonDoc.id,
-        email: salonData.ownerEmail,
-        name: salonData.ownerName,
-        salonName: salonData.name,
+      console.log('✅ Login successful!');
+      console.log('User:', validCredential.ownerName);
+      
+      // 2. Save to localStorage
+      const ownerData = {
+        salonId: validCredential.salonId,
+        email: validCredential.email,
+        name: validCredential.ownerName,
+        salonName: validCredential.salonName,
         timestamp: new Date().toISOString()
-      }));
-
+      };
+      
+      localStorage.setItem('salonOwner', JSON.stringify(ownerData));
+      console.log('💾 Saved to localStorage:', ownerData);
+      
+      // 3. IMPORTANT: Clear any React state issues
+      setLoading(false);
+      
+      // 4. Force navigation - MULTIPLE METHODS
+      console.log('🚀 Attempting navigation...');
+      
+      // Method 1: Direct navigation (should work)
       navigate('/owner/dashboard');
-
+      
+      // Method 2: Force a state update then navigate
+      setTimeout(() => {
+        console.log('⏰ Timeout navigation attempt...');
+        navigate('/owner/dashboard', { replace: true });
+      }, 100);
+      
+      // Method 3: Fallback - window location
+      setTimeout(() => {
+        console.log('Checking if navigation worked...');
+        if (window.location.pathname !== '/owner/dashboard') {
+          console.log('🔄 Using window.location fallback');
+          window.location.href = '/owner/dashboard';
+        }
+      }, 500);
+      
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       setError('Login failed. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
 
-  // Add a "Demo Login" button for testing
-  const handleDemoLogin = (demoEmail, demoPassword) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
+  // Quick login function for testing
+  const quickLogin = (credential) => {
+    console.log('🚀 Quick login as:', credential.ownerName);
+    setEmail(credential.email);
+    setPassword(credential.password);
     
     // Auto-submit after a short delay
     setTimeout(() => {
-      document.querySelector('form').dispatchEvent(new Event('submit'));
+      const form = document.querySelector('form');
+      if (form) {
+        console.log('Submitting form...');
+        form.dispatchEvent(new Event('submit', { cancelable: true }));
+      } else {
+        console.error('Form not found!');
+      }
     }, 300);
   };
 
@@ -122,7 +123,8 @@ const OwnerLogin = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px'
+      padding: '20px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
       <div style={{
         background: 'white',
@@ -148,41 +150,57 @@ const OwnerLogin = () => {
           }}>
             <FaCut />
           </div>
-          <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px', color: '#1F2937' }}>
             SalonWay
           </h1>
-          <p style={{ color: '#666', fontSize: '16px' }}>
-            Professional Salon Management
+          <p style={{ color: '#6B7280', fontSize: '16px' }}>
+            Owner Portal
           </p>
         </div>
 
-        {/* Demo Credentials Banner (only in development) */}
-        {process.env.NODE_ENV === 'development' && (
+        {/* Quick Login Buttons (Development Only) */}
+        {process.env.NODE_ENV !== 'production' && (
           <div style={{
-            background: '#D1FAE5',
-            border: '1px solid #10B981',
-            borderRadius: '8px',
-            padding: '12px',
-            marginBottom: '20px',
-            fontSize: '14px'
+            background: '#F3F4F6',
+            border: '1px solid #E5E7EB',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '24px'
           }}>
-            <strong>🧪 Demo Mode Active</strong>
-            <div style={{ marginTop: '8px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '12px', color: '#6B7280', fontWeight: '600', marginBottom: '10px' }}>
+              🧪 DEVELOPMENT LOGINS
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {VALID_CREDENTIALS.map((cred, index) => (
                 <button
                   key={index}
-                  onClick={() => handleDemoLogin(cred.email, cred.password)}
+                  onClick={() => quickLogin(cred)}
                   style={{
-                    background: '#10B981',
-                    color: 'white',
-                    border: 'none',
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    cursor: 'pointer'
+                    background: 'white',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '8px',
+                    padding: '10px 16px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
                   }}
+                  onMouseOver={(e) => e.currentTarget.style.background = '#F9FAFB'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'white'}
                 >
-                  Login as {cred.ownerName}
+                  <div>
+                    <div style={{ fontWeight: '500', color: '#1F2937' }}>
+                      {cred.ownerName}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                      {cred.email}
+                    </div>
+                  </div>
+                  <div style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>
+                    LOGIN
+                  </div>
                 </button>
               ))}
             </div>
@@ -195,16 +213,20 @@ const OwnerLogin = () => {
             <div style={{
               background: '#FEE2E2',
               color: '#DC2626',
-              padding: '12px',
-              borderRadius: '8px',
+              padding: '14px',
+              borderRadius: '10px',
               marginBottom: '20px',
               fontSize: '14px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '10px',
+              border: '1px solid #FECACA'
             }}>
-              <span>⚠️</span>
-              <span>{error}</span>
+              <div style={{ fontSize: '18px' }}>⚠️</div>
+              <div>
+                <div style={{ fontWeight: '600' }}>Authentication Error</div>
+                <div>{error}</div>
+              </div>
             </div>
           )}
 
@@ -214,17 +236,19 @@ const OwnerLogin = () => {
               display: 'block',
               marginBottom: '8px',
               fontWeight: '500',
-              color: '#374151'
+              color: '#374151',
+              fontSize: '14px'
             }}>
               Email Address
             </label>
             <div style={{ position: 'relative' }}>
               <FaEnvelope style={{
                 position: 'absolute',
-                left: '12px',
+                left: '14px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: '#9CA3AF'
+                color: '#9CA3AF',
+                fontSize: '18px'
               }} />
               <input
                 type="email"
@@ -234,14 +258,19 @@ const OwnerLogin = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="owner@salon.com"
                 required
+                disabled={loading}
                 style={{
                   width: '100%',
-                  padding: '12px 12px 12px 40px',
+                  padding: '14px 14px 14px 44px',
                   border: '1px solid #D1D5DB',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  transition: 'all 0.2s'
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  transition: 'all 0.2s',
+                  background: loading ? '#F9FAFB' : 'white',
+                  color: loading ? '#9CA3AF' : '#1F2937'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = '#D1D5DB'}
               />
             </div>
           </div>
@@ -252,17 +281,19 @@ const OwnerLogin = () => {
               display: 'block',
               marginBottom: '8px',
               fontWeight: '500',
-              color: '#374151'
+              color: '#374151',
+              fontSize: '14px'
             }}>
               Password
             </label>
             <div style={{ position: 'relative' }}>
               <FaLock style={{
                 position: 'absolute',
-                left: '12px',
+                left: '14px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: '#9CA3AF'
+                color: '#9CA3AF',
+                fontSize: '18px'
               }} />
               <input
                 type="password"
@@ -272,14 +303,19 @@ const OwnerLogin = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                disabled={loading}
                 style={{
                   width: '100%',
-                  padding: '12px 12px 12px 40px',
+                  padding: '14px 14px 14px 44px',
                   border: '1px solid #D1D5DB',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  transition: 'all 0.2s'
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  transition: 'all 0.2s',
+                  background: loading ? '#F9FAFB' : 'white',
+                  color: loading ? '#9CA3AF' : '#1F2937'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = '#D1D5DB'}
               />
             </div>
           </div>
@@ -290,23 +326,37 @@ const OwnerLogin = () => {
             disabled={loading}
             style={{
               width: '100%',
-              padding: '15px',
+              padding: '16px',
               background: loading ? '#9CA3AF' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '10px',
               fontSize: '16px',
               fontWeight: '600',
               cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              opacity: loading ? 0.7 : 1
+              transition: 'all 0.3s',
+              opacity: loading ? 0.7 : 1,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseOver={(e) => {
+              if (!loading) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 10px 25px rgba(102, 126, 234, 0.4)';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!loading) {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
             }}
           >
             {loading ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <span className="spinner" style={{
-                  width: '16px',
-                  height: '16px',
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                <span style={{
+                  width: '18px',
+                  height: '18px',
                   border: '2px solid rgba(255,255,255,0.3)',
                   borderTop: '2px solid white',
                   borderRadius: '50%',
@@ -320,9 +370,9 @@ const OwnerLogin = () => {
           {/* Help Text */}
           <div style={{ marginTop: '30px', textAlign: 'center' }}>
             <p style={{ color: '#6B7280', fontSize: '14px' }}>
-              Forgot password? Contact support@salonway.com
+              Forgot password? <a href="mailto:support@salonway.com" style={{ color: '#667eea', textDecoration: 'none' }}>Contact support</a>
             </p>
-            <p style={{ color: '#9CA3AF', fontSize: '12px', marginTop: '8px' }}>
+            <p style={{ color: '#9CA3AF', fontSize: '12px', marginTop: '12px' }}>
               v1.0.0 • Secure Authentication
             </p>
           </div>
@@ -335,9 +385,44 @@ const OwnerLogin = () => {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        
+        /* Debug info in console */
+        .debug-info {
+          display: none;
+        }
       `}</style>
     </div>
   );
+};
+
+// Add a direct navigation test function (call from console)
+window.testNavigation = () => {
+  console.log('🔧 Testing navigation manually...');
+  const testData = {
+    salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg',
+    email: 'test3@gmail.com',
+    name: 'Mamazi',
+    salonName: 'Mamazi',
+    timestamp: new Date().toISOString()
+  };
+  
+  localStorage.setItem('salonOwner', JSON.stringify(testData));
+  console.log('💾 Saved test data to localStorage');
+  
+  // Try multiple navigation methods
+  const navMethods = [
+    () => window.location.href = '/owner/dashboard',
+    () => window.location.pathname = '/owner/dashboard',
+    () => window.history.pushState({}, '', '/owner/dashboard') && window.location.reload()
+  ];
+  
+  console.log('🚀 Attempting navigation methods...');
+  navMethods.forEach((method, index) => {
+    setTimeout(() => {
+      console.log(`Method ${index + 1}...`);
+      try { method(); } catch(e) { console.error(e); }
+    }, index * 1000);
+  });
 };
 
 export default OwnerLogin;
