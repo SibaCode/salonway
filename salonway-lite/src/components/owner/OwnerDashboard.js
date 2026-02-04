@@ -111,7 +111,11 @@ const OwnerDashboard = () => {
   const [ownerData, setOwnerData] = useState(null);
   const [salonData, setSalonData] = useState(null);
   const [loading, setLoading] = useState(true);
-  // Removed unused stats state since it's not being used in the component
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('salonOwner');
+    navigate('/owner/login');
+  }, [navigate]);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -142,16 +146,11 @@ const OwnerDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, handleLogout]);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('salonOwner');
-    navigate('/owner/login');
-  };
 
   const BottomNav = () => (
     <nav className="bottom-nav">
@@ -520,7 +519,6 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
     formResponses: 0,
     galleryViews: 0
   });
-  const [activeStaff, setActiveStaff] = useState([]);
   const [liveFeed, setLiveFeed] = useState([]);
   const [recentWork, setRecentWork] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -583,8 +581,8 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
         record.salonId === salonId
       );
       
-      const activeStaffList = salonClockRecords.filter(record => !record.clockOut);
-      setActiveStaff(activeStaffList);
+      // Removed unused activeStaff assignment
+      // const activeStaffList = salonClockRecords.filter(record => !record.clockOut);
       
       // 2. Get ALL work logs
       const workSnapshot = await getDocs(collection(db, 'workLogs'));
@@ -671,7 +669,8 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
       
       setLiveFeed(sortedActivities);
       
-      // 5. Update dashboard stats
+      // 5. Update dashboard stats with staff active count
+      const activeStaffList = salonClockRecords.filter(record => !record.clockOut);
       setDashboardStats({
         staffActive: activeStaffList.length,
         todayRevenue: todayRevenue,
@@ -967,7 +966,6 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
 
 const ReportsContent = ({ salonId }) => {
   const [workLogs, setWorkLogs] = useState([]);
-  const [reportsLoading, setReportsLoading] = useState(true);
   const [dateRange, setDateRange] = useState('today');
 
   const fetchWorkLogs = useCallback(async () => {
@@ -1000,8 +998,6 @@ const ReportsContent = ({ salonId }) => {
       setWorkLogs(logs);
     } catch (error) {
       console.error('Error fetching work logs:', error);
-    } finally {
-      setReportsLoading(false);
     }
   }, [salonId, dateRange]);
 
@@ -1618,17 +1614,16 @@ const StaffContent = ({ salonId, ownerData }) => {
                   fontSize: '14px',
                   fontWeight: '500',
                   cursor: 'pointer'
-                }}
-              >
-                {toast.action.label}
-              </button>
-            )}
+                }}>
+                  {toast.action.label}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </>
-  );
-};
+        )}
+      </>
+    );
+  };
 
 // Settings Content Component
 const SettingsContent = ({ salonData, ownerData }) => {
