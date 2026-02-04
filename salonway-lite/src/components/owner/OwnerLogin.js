@@ -38,7 +38,7 @@ const OwnerLogin = () => {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
-      console.log('📧 Checking credentials for:', email.trim());
+      console.log('Checking credentials for:', email.trim());
       
       // 1. Check hardcoded credentials first (FAST)
       const validCredential = VALID_CREDENTIALS.find(
