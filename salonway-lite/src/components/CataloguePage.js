@@ -1,7 +1,7 @@
 // CataloguePage.js - Clean Professional Layout
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { db } from '../config/firebase';
+import { db } from '../../config/firebase';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { 
   MapPin, Phone, Clock, Scissors, MessageCircle, 
