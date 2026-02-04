@@ -19,10 +19,7 @@ const CataloguePage = () => {
   const [showPolicy, setShowPolicy] = useState(false);
 
   useEffect(() => {
-    fetchCatalogueData();
-  }, [salonId]);
-
-  const fetchCatalogueData = async () => {
+     const fetchCatalogueData = async () => {
     try {
       const salonDoc = await getDoc(doc(db, 'salons', salonId));
       if (salonDoc.exists()) {
@@ -45,6 +42,10 @@ const CataloguePage = () => {
       setLoading(false);
     }
   };
+    fetchCatalogueData();
+  }, [salonId]);
+
+ 
 
   // Use salon's custom colors
   const colors = {

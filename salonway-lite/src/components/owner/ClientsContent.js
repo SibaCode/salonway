@@ -10,7 +10,7 @@ import {
   where
 } from 'firebase/firestore';
 import { db } from '../../firebase';
-
+import { useCallback } from 'react';
 const ClientsContent = ({ salonId, salonData }) => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,41 +27,40 @@ const ClientsContent = ({ salonId, salonData }) => {
   const secondaryLight = `${secondaryColor}20`;
   const borderColor = '#dee2e6';
   
-//   useEffect(() => {
-//     fetchClients();
-//   }, [salonId]);
+
+const fetchClients = useCallback(async () => {
+  try {
+    setLoading(true);
+    const q = query(
+      collection(db, 'consultations'),
+      where('salonId', '==', salonId)
+    );
+    
+    const snapshot = await getDocs(q);
+    const clientData = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Sort by date
+    clientData.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(0);
+      const dateB = b.createdAt?.toDate?.() || new Date(0);
+      return dateB - dateA;
+    });
+    
+    setClients(clientData);
+  } catch (error) {
+    console.error('Error fetching clients:', error);
+    alert('Error loading clients');
+  } finally {
+    setLoading(false);
+  }
+}, [salonId]);
 useEffect(() => {
   fetchClients();
 }, [fetchClients]);
-  const fetchClients = async () => {
-    try {
-      setLoading(true);
-      const q = query(
-        collection(db, 'consultations'),
-        where('salonId', '==', salonId)
-      );
-      
-      const snapshot = await getDocs(q);
-      const clientData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      // Sort by date
-      clientData.sort((a, b) => {
-        const dateA = a.createdAt?.toDate?.() || new Date(0);
-        const dateB = b.createdAt?.toDate?.() || new Date(0);
-        return dateB - dateA;
-      });
-      
-      setClients(clientData);
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-      alert('Error loading clients');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const addNewClient = async (clientData) => {
     try {

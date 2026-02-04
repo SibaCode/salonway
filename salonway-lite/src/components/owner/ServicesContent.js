@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect ,useCallback} from 'react';
 import { 
   collection, 
   getDocs, 
@@ -70,48 +70,45 @@ const ServicesContent = ({ salonId, salonData = {}, ownerData = {} }) => {
   const filteredServices = activeCategory === 'All' 
     ? services 
     : services.filter(service => service.category === activeCategory);
+const fetchServices = useCallback(async () => {
+  try {
+    const servicesSnapshot = await getDocs(collection(db, 'salons', salonId, 'services'));
+    const servicesList = servicesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setServices(servicesList);
+    
+    // Extract unique categories from services
+    const uniqueCategories = [...new Set(servicesList.map(service => service.category))];
+    setCategories(uniqueCategories);
+  } catch (error) {
+    console.error('Error fetching services:', error);
+    showToast('Failed to load services', 'error');
+  } finally {
+    setLoading(false);
+  }
+}, [salonId, setServices, setCategories, setLoading, showToast]); // Add all dependencies
 
-//   useEffect(() => {
-//     fetchServices();
-//     loadCatalogueSettings();
-//   }, [salonId]);
+// Wrap loadCatalogueSettings in useCallback
+const loadCatalogueSettings = useCallback(async () => {
+  try {
+    const settingsDoc = await getDoc(doc(db, 'salons', salonId, 'catalogue', 'settings'));
+    if (settingsDoc.exists()) {
+      setCatalogueSettings(prev => ({
+        ...prev,
+        ...settingsDoc.data()
+      }));
+    }
+  } catch (error) {
+    console.log('No catalogue settings found, using defaults');
+  }
+}, [salonId, setCatalogueSettings]); // Add all dependencies
+
 useEffect(() => {
   fetchServices();
   loadCatalogueSettings();
 }, [fetchServices, loadCatalogueSettings]);
-  const fetchServices = async () => {
-    try {
-      const servicesSnapshot = await getDocs(collection(db, 'salons', salonId, 'services'));
-      const servicesList = servicesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setServices(servicesList);
-      
-      // Extract unique categories from services
-      const uniqueCategories = [...new Set(servicesList.map(service => service.category))];
-      setCategories(uniqueCategories);
-    } catch (error) {
-      console.error('Error fetching services:', error);
-      showToast('Failed to load services', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCatalogueSettings = async () => {
-    try {
-      const settingsDoc = await getDoc(doc(db, 'salons', salonId, 'catalogue', 'settings'));
-      if (settingsDoc.exists()) {
-        setCatalogueSettings(prev => ({
-          ...prev,
-          ...settingsDoc.data()
-        }));
-      }
-    } catch (error) {
-      console.log('No catalogue settings found, using defaults');
-    }
-  };
 
   const saveCatalogueSettings = async () => {
     try {

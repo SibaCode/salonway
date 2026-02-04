@@ -111,9 +111,9 @@ const ClientConsultation = () => {
         consentData: formData.consentData,
         
         // System
-        status: 'new',
+        // status: 'new',
         source: 'online_form',
-        createdAt: serverTimestamp(),
+        // createdAt: serverTimestamp(),
         submittedAt: new Date().toISOString()
       };
 
