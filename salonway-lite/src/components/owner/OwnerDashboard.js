@@ -111,7 +111,10 @@ const OwnerDashboard = () => {
   const [ownerData, setOwnerData] = useState(null);
   const [salonData, setSalonData] = useState(null);
   const [loading, setLoading] = useState(true);
-
+const [errorState, setErrorState] = useState({  hasError: false,
+  message: '',
+  details: ''
+});
 
 const handleLogout = useCallback(() => {
   console.log('🚪 Logging out...');
@@ -128,37 +131,125 @@ const handleLogout = useCallback(() => {
   }, 100);
 }, [navigate]);
 
-// const checkAuth = useCallback(async () => {
-//   try {
-//     const owner = JSON.parse(localStorage.getItem('salonOwner'));
-//     if (!owner) {
-//       navigate('/owner/login');
-//       return;
-//     }
+  const checkAuth = useCallback(async () => {
+  console.log('🔐 checkAuth started...');
+  
+  try {
+    // 1. Check localStorage
+    const ownerJson = localStorage.getItem('salonOwner');
+    console.log('📦 localStorage data:', ownerJson);
+    
+    if (!ownerJson) {
+      console.log('❌ No owner data found in localStorage');
+      navigate('/owner/login');
+      return;
+    }
 
-//     const salonRef = doc(db, 'salons', owner.salonId);
-//     const salonSnap = await getDoc(salonRef);
+    // 2. Parse owner data
+    const owner = JSON.parse(ownerJson);
+    console.log('✅ Owner data parsed:', owner);
+    
+    if (!owner.salonId) {
+      console.log('❌ No salonId in owner data');
+      navigate('/owner/login');
+      return;
+    }
 
-//     if (salonSnap.exists()) {
-//       const data = { id: salonSnap.id, ...salonSnap.data() };
-//       setSalonData(data);
-//       setOwnerData(owner);
+    // 3. Immediately set owner data (makes dashboard show faster)
+    setOwnerData(owner);
+    
+    // 4. Try to fetch salon data
+    console.log(`🏢 Fetching salon data for ID: ${owner.salonId}`);
+    const salonRef = doc(db, 'salons', owner.salonId);
+    const salonSnap = await getDoc(salonRef);
+
+    if (salonSnap.exists()) {
+      // Salon found in Firestore
+      const salonData = { 
+        id: salonSnap.id, 
+        ...salonSnap.data(),
+        // Ensure required fields exist
+        name: salonSnap.data().name || owner.salonName || 'My Salon',
+        primaryColor: salonSnap.data().primaryColor || '#3B82F6',
+        secondaryColor: salonSnap.data().secondaryColor || '#10B981'
+      };
       
-//       document.documentElement.style.setProperty('--primary-color', data.primaryColor || '#3B82F6');
-//       document.documentElement.style.setProperty('--secondary-color', data.secondaryColor || '#10B981');
-//     } else {
-//       // Direct logout instead of calling handleLogout
-//       localStorage.removeItem('salonOwner');
-//       navigate('/owner/login');
-//     }
-//   } catch (error) {
-//     console.error('Auth check error:', error);
-//     localStorage.removeItem('salonOwner');
-//     navigate('/owner/login');
-//   } finally {
-//     setLoading(false);
-//   }
-// }, [navigate]); // ✅ Only navigate as dependency
+      setSalonData(salonData);
+      console.log('🎨 Salon data loaded:', salonData);
+      
+      // Set CSS variables
+      document.documentElement.style.setProperty('--primary-color', salonData.primaryColor);
+      document.documentElement.style.setProperty('--secondary-color', salonData.secondaryColor);
+      
+    } else {
+      // Salon not found in Firestore - use fallback
+      console.log('⚠️ Salon not found in Firestore, using fallback data');
+      
+      const fallbackSalonData = {
+        id: owner.salonId,
+        name: owner.salonName || 'My Salon',
+        ownerEmail: owner.email,
+        ownerName: owner.name,
+        primaryColor: '#3B82F6',
+        secondaryColor: '#10B981',
+        createdAt: new Date().toISOString()
+      };
+      
+      setSalonData(fallbackSalonData);
+      console.log('🔄 Using fallback salon data:', fallbackSalonData);
+      
+      // Set CSS variables with fallback colors
+      document.documentElement.style.setProperty('--primary-color', '#3B82F6');
+      document.documentElement.style.setProperty('--secondary-color', '#10B981');
+    }
+
+    console.log('✅ Authentication successful!');
+    
+  } catch (error) {
+    console.error('🚨 Auth check error:', error);
+    
+    // More specific error handling
+    if (error.code === 'permission-denied') {
+      console.error('Firestore permission denied. Check Firestore rules.');
+    } else if (error.code === 'not-found') {
+      console.error('Salon document not found.');
+    }
+    
+    // Don't logout immediately, show error state first
+    setErrorState({
+      hasError: true,
+      message: 'Failed to load salon data',
+      details: error.message
+    });
+    
+    // Use fallback data for development
+    const fallbackOwner = {
+      salonId: 'fallback-id',
+      email: 'demo@salon.com',
+      name: 'Demo Owner',
+      salonName: 'Demo Salon'
+    };
+    
+    const fallbackSalon = {
+      id: 'fallback-id',
+      name: 'Demo Salon',
+      primaryColor: '#3B82F6',
+      secondaryColor: '#10B981'
+    };
+    
+    setOwnerData(fallbackOwner);
+    setSalonData(fallbackSalon);
+    document.documentElement.style.setProperty('--primary-color', '#3B82F6');
+    document.documentElement.style.setProperty('--secondary-color', '#10B981');
+    
+  } finally {
+    console.log('🏁 Auth check completed');
+    setLoading(false);
+  }
+}, [navigate, handleLogout]);
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const BottomNav = () => (
     <nav className="bottom-nav">
@@ -216,59 +307,59 @@ const handleLogout = useCallback(() => {
   );
 }
 
-// if (errorState.hasError) {
-//   return (
-//     <div className="error-container">
-//       <div style={{ textAlign: 'center', padding: '40px' }}>
-//         <div style={{ fontSize: '48px', color: '#EF4444', marginBottom: '20px' }}>
-//           ⚠️
-//         </div>
-//         <h2 style={{ marginBottom: '10px' }}>Connection Issue</h2>
-//         <p style={{ color: '#6c757d', marginBottom: '20px' }}>
-//           {errorState.message}
-//         </p>
-//         <div style={{ 
-//           background: '#F3F4F6', 
-//           padding: '15px', 
-//           borderRadius: '8px',
-//           marginBottom: '20px',
-//           fontSize: '12px',
-//           textAlign: 'left'
-//         }}>
-//           <strong>Debug Info:</strong>
-//           <div style={{ marginTop: '5px' }}>{errorState.details}</div>
-//         </div>
-//         <button
-//           onClick={() => window.location.reload()}
-//           style={{
-//             padding: '10px 20px',
-//             background: '#3B82F6',
-//             color: 'white',
-//             border: 'none',
-//             borderRadius: '8px',
-//             cursor: 'pointer'
-//           }}
-//         >
-//           Retry
-//         </button>
-//         <button
-//           onClick={handleLogout}
-//           style={{
-//             padding: '10px 20px',
-//             background: '#F3F4F6',
-//             color: '#374151',
-//             border: 'none',
-//             borderRadius: '8px',
-//             cursor: 'pointer',
-//             marginLeft: '10px'
-//           }}
-//         >
-//           Back to Login
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
+if (errorState.hasError) {
+  return (
+    <div className="error-container">
+      <div style={{ textAlign: 'center', padding: '40px' }}>
+        <div style={{ fontSize: '48px', color: '#EF4444', marginBottom: '20px' }}>
+          ⚠️
+        </div>
+        <h2 style={{ marginBottom: '10px' }}>Connection Issue</h2>
+        <p style={{ color: '#6c757d', marginBottom: '20px' }}>
+          {errorState.message}
+        </p>
+        <div style={{ 
+          background: '#F3F4F6', 
+          padding: '15px', 
+          borderRadius: '8px',
+          marginBottom: '20px',
+          fontSize: '12px',
+          textAlign: 'left'
+        }}>
+          <strong>Debug Info:</strong>
+          <div style={{ marginTop: '5px' }}>{errorState.details}</div>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          style={{
+            padding: '10px 20px',
+            background: '#3B82F6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer'
+          }}
+        >
+          Retry
+        </button>
+        <button
+          onClick={handleLogout}
+          style={{
+            padding: '10px 20px',
+            background: '#F3F4F6',
+            color: '#374151',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            marginLeft: '10px'
+          }}
+        >
+          Back to Login
+        </button>
+      </div>
+    </div>
+  );
+}
 
   if (!ownerData || !salonData) {
     return null;
