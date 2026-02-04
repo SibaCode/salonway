@@ -927,7 +927,7 @@ const StaffDashboard = () => {
             </div>
             
             <div className="form-group">
-              <label>Price ($) *</label>
+              <label>Price (R) *</label>
               <input
                 type="number"
                 value={newWork.price}

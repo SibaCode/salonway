@@ -39,6 +39,83 @@ import {
   FaCopy
 } from 'react-icons/fa';
 import './css/OwnerDashboard.css';
+// First, add this toast notification component at the top of your file (after imports)
+const ToastNotification = ({ message, type = 'success', onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const typeStyles = {
+    success: { background: '#10B981', icon: '✅' },
+    error: { background: '#EF4444', icon: '❌' },
+    info: { background: '#3B82F6', icon: 'ℹ️' },
+    warning: { background: '#F59E0B', icon: '⚠️' }
+  };
+
+  const style = typeStyles[type] || typeStyles.success;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: '80px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: style.background,
+      color: 'white',
+      padding: '12px 20px',
+      borderRadius: '10px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      minWidth: '280px',
+      maxWidth: '90%',
+      animation: 'slideUp 0.3s ease'
+    }}>
+      <span style={{ fontSize: '18px' }}>{style.icon}</span>
+      <span style={{ fontSize: '14px', fontWeight: '500', flex: 1 }}>{message}</span>
+      <button 
+        onClick={onClose}
+        style={{
+          background: 'rgba(255,255,255,0.2)',
+          border: 'none',
+          color: 'white',
+          borderRadius: '50%',
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          fontSize: '16px'
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+};
+
+// Add this CSS for the animation
+const toastStyles = `
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+`;
+
+// Then update your StaffContent component
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
@@ -199,9 +276,9 @@ const DesktopSidebar = () => (
         { id: 'staff', label: 'Staff', icon: '👥' },
         { id: 'services', label: 'Services', icon: '💼' },
         { id: 'clients', label: 'Clients', icon: '👤' },
-        { id: 'gallery', label: 'Gallery', icon: '🖼️' },
-        { id: 'reports', label: 'Reports', icon: '📊' },
-        { id: 'settings', label: 'Settings', icon: '⚙️' },
+        // { id: 'gallery', label: 'Gallery', icon: '🖼️' },
+        // { id: 'reports', label: 'Reports', icon: '📊' },
+        // { id: 'settings', label: 'Settings', icon: '⚙️' },
       ].map((item) => (
         <div
           key={item.id}
@@ -694,7 +771,7 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
     },
     {
       title: "Today's Revenue",
-      value: `$${dashboardStats.todayRevenue}`,
+      value: `R${dashboardStats.todayRevenue}`,
       icon: '💰',
       color: '#10B981',
       bgColor: '#ECFDF5',
@@ -773,7 +850,7 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
       <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
         <span style={{ fontSize: '20px' }}>📡</span> Live Feed
       </h3>
-      {liveFeed.length > 0 && (
+      {/* {liveFeed.length > 0 && (
         <span style={{
           fontSize: '12px',
           background: '#3B82F6',
@@ -784,7 +861,7 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
         }}>
           {liveFeed.length} activities
         </span>
-      )}
+      )} */}
     </div>
     <button 
       onClick={refreshDashboard}
@@ -813,7 +890,7 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
     overflowX: 'auto'
   }}>
     {[
-      { id: 'all', label: 'All', icon: '📡', count: liveFeed.length },
+      { id: 'all', label: 'All', icon: '📡' },
       { id: 'service', label: 'Services', icon: '💼', count: liveFeed.filter(item => item.type === 'service').length },
       { id: 'form', label: 'Forms', icon: '📝', count: liveFeed.filter(item => item.type === 'form').length },
       { id: 'clock', label: 'Attendance', icon: '⏰', count: liveFeed.filter(item => item.type === 'clock').length }
@@ -963,7 +1040,7 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
                     borderRadius: '10px',
                     fontWeight: '600'
                   }}>
-                    ${item.price}
+                    R{item.price}
                   </span>
                 )}
               </div>
@@ -976,7 +1053,7 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
 </div>
 
       {/* Recent Work Section */}
-      {recentWork.length > 0 ? (
+      {/* {recentWork.length > 0 ? (
         <div className="content-card" style={{ margin: '0 20px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
@@ -1106,21 +1183,26 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
             </p>
           </div>
         </div>
-      )}
+      )} */}
     </>
   );
 };
 const ClientsContent = ({ salonId, salonData }) => {
-  const [clientForms, setClientForms] = useState([]);
+  const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedForm, setSelectedForm] = useState(null);
+  const [selectedConsultation, setSelectedConsultation] = useState(null);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all'); // 'form' or 'manual'
   
   useEffect(() => {
-    fetchClientForms();
+    fetchConsultations();
   }, [salonId]);
 
-  const fetchClientForms = async () => {
+  const fetchConsultations = async () => {
     try {
+      setLoading(true);
       const q = query(
         collection(db, 'consultations'),
         where('salonId', '==', salonId),
@@ -1128,31 +1210,115 @@ const ClientsContent = ({ salonId, salonData }) => {
       );
       
       const snapshot = await getDocs(q);
-      const forms = snapshot.docs.map(doc => ({
+      const consultationsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       
-      setClientForms(forms);
+      setConsultations(consultationsData);
     } catch (error) {
-      console.error('Error fetching client forms:', error);
+      console.error('Error fetching consultations:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getFormLink = () => {
-    return `${window.location.origin}/client/${salonData.id}`;
+  const addNewClient = async (clientData) => {
+    try {
+      const newConsultation = {
+        ...clientData,
+        salonId,
+        createdAt: new Date(),
+        status: 'new',
+        source: 'manual', // Mark as manually added
+        // Map form fields to match consultation structure
+        clientName: clientData.name,
+        clientPhone: clientData.phone,
+        clientEmail: clientData.email,
+        serviceNeeded: clientData.preferences,
+        additionalInfo: clientData.notes
+      };
+
+      const docRef = await addDoc(collection(db, 'consultations'), newConsultation);
+      
+      setConsultations(prev => [{
+        id: docRef.id,
+        ...newConsultation
+      }, ...prev]);
+      
+      setShowAddClient(false);
+      alert('Client added successfully!');
+    } catch (error) {
+      console.error('Error adding client:', error);
+      alert('Failed to add client');
+    }
+  };
+
+  const updateConsultationStatus = async (consultationId, newStatus) => {
+    try {
+      await updateDoc(doc(db, 'consultations', consultationId), {
+        status: newStatus,
+        updatedAt: new Date()
+      });
+      
+      setConsultations(prev => prev.map(consult => 
+        consult.id === consultationId ? { ...consult, status: newStatus } : consult
+      ));
+      
+      if (selectedConsultation?.id === consultationId) {
+        setSelectedConsultation(prev => ({ ...prev, status: newStatus }));
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  };
+
+  const deleteConsultation = async (consultationId) => {
+    if (window.confirm('Are you sure you want to delete this client entry?')) {
+      try {
+        await deleteDoc(doc(db, 'consultations', consultationId));
+        setConsultations(prev => prev.filter(consult => consult.id !== consultationId));
+        if (selectedConsultation?.id === consultationId) {
+          setSelectedConsultation(null);
+        }
+      } catch (error) {
+        console.error('Error deleting client:', error);
+      }
+    }
   };
 
   const copyFormLink = () => {
-    navigator.clipboard.writeText(getFormLink());
-    alert('Form link copied!');
+    const formLink = `${window.location.origin}/client/${salonData.id}`;
+    navigator.clipboard.writeText(formLink);
+    alert('Form link copied! Share this with clients.');
   };
+
+  // Filter consultations
+  const filteredConsultations = consultations.filter(consult => {
+    const matchesSearch = searchTerm === '' || 
+      consult.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      consult.clientPhone?.includes(searchTerm) ||
+      consult.clientEmail?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || consult.status === statusFilter;
+    
+    const matchesType = typeFilter === 'all' || 
+      (typeFilter === 'form' && consult.source !== 'manual') ||
+      (typeFilter === 'manual' && consult.source === 'manual');
+    
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  // Get unique client count (by phone or email)
+  const uniqueClientsCount = new Set(
+    consultations
+      .filter(c => c.clientPhone || c.clientEmail)
+      .map(c => c.clientPhone || c.clientEmail)
+  ).size;
 
   return (
     <div style={{ padding: '20px' }}>
-      {/* Header with form link */}
+      {/* Header */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -1162,36 +1328,166 @@ const ClientsContent = ({ salonId, salonData }) => {
         gap: '16px'
       }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 4px 0' }}>
-            Client Forms
+          <h2 style={{ fontSize: '24px', fontWeight: '600', margin: '0 0 4px 0' }}>
+            Client Management
           </h2>
           <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
-            Manage consultations & client information
+            Manage client forms and information
           </p>
         </div>
         
-        <button 
-          onClick={copyFormLink}
-          style={{
-            padding: '10px 20px',
-            background: 'var(--primary-color)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          📝 Share Form Link
-        </button>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button 
+            onClick={copyFormLink}
+            style={{
+              padding: '10px 20px',
+              background: 'var(--primary-color, #007bff)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            📝 Share Form
+          </button>
+          
+          <button 
+            onClick={() => setShowAddClient(true)}
+            style={{
+              padding: '10px 20px',
+              background: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            ➕ Add Client
+          </button>
+        </div>
       </div>
 
-      {/* Client forms list */}
-      {clientForms.length === 0 ? (
+      {/* Stats Overview */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '16px',
+        marginBottom: '24px'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '20px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#6c757d' }}>Total Entries</p>
+          <h3 style={{ margin: 0, fontSize: '28px', fontWeight: '600' }}>{consultations.length}</h3>
+        </div>
+        
+        <div style={{
+          background: 'white',
+          padding: '20px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#6c757d' }}>Unique Clients</p>
+          <h3 style={{ margin: 0, fontSize: '28px', fontWeight: '600', color: '#28a745' }}>
+            {uniqueClientsCount}
+          </h3>
+        </div>
+        
+        <div style={{
+          background: 'white',
+          padding: '20px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#6c757d' }}>New (Unreviewed)</p>
+          <h3 style={{ margin: 0, fontSize: '28px', fontWeight: '600', color: '#fd7e14' }}>
+            {consultations.filter(c => c.status === 'new').length}
+          </h3>
+        </div>
+      </div>
+
+      {/* Search and Filter */}
+      <div style={{
+        display: 'flex',
+        gap: '16px',
+        marginBottom: '24px',
+        flexWrap: 'wrap',
+        background: '#f8f9fa',
+        padding: '16px',
+        borderRadius: '8px'
+      }}>
+        <div style={{ flex: 1, minWidth: '250px' }}>
+          <input
+            type="text"
+            placeholder="Search by name, phone, or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 16px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+        
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{
+            padding: '10px 16px',
+            border: '1px solid #dee2e6',
+            borderRadius: '8px',
+            fontSize: '14px',
+            background: 'white',
+            minWidth: '120px'
+          }}
+        >
+          <option value="all">All Status</option>
+          <option value="new">New</option>
+          <option value="reviewed">Reviewed</option>
+          <option value="contacted">Contacted</option>
+          <option value="scheduled">Scheduled</option>
+        </select>
+        
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          style={{
+            padding: '10px 16px',
+            border: '1px solid #dee2e6',
+            borderRadius: '8px',
+            fontSize: '14px',
+            background: 'white',
+            minWidth: '120px'
+          }}
+        >
+          <option value="all">All Types</option>
+          <option value="form">Form Submissions</option>
+          <option value="manual">Manual Entries</option>
+        </select>
+      </div>
+
+      {/* Consultations List */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <p>Loading client data...</p>
+        </div>
+      ) : filteredConsultations.length === 0 ? (
         <div style={{
           textAlign: 'center',
           padding: '60px 20px',
@@ -1214,53 +1510,912 @@ const ClientsContent = ({ salonId, salonData }) => {
             📝
           </div>
           <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#6c757d' }}>
-            No Client Forms Yet
+            {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' ? 'No matching entries' : 'No Client Entries Yet'}
           </h3>
           <p style={{ color: '#adb5bd', fontSize: '14px', margin: '0 0 20px 0' }}>
-            Share the form link with clients to collect their information
+            {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' 
+              ? 'Try adjusting your search or filters' 
+              : 'Add clients manually or share the form with clients'}
           </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => setShowAddClient(true)}
+              style={{
+                padding: '10px 20px',
+                background: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              ➕ Add First Client
+            </button>
+            <button 
+              onClick={copyFormLink}
+              style={{
+                padding: '10px 20px',
+                background: 'var(--primary-color, #007bff)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              📝 Get Form Link
+            </button>
+          </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {clientForms.map(form => (
-            <div 
-              key={form.id}
-              className="content-card"
-              onClick={() => setSelectedForm(form)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ 
+          background: 'white', 
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1.5fr 1fr 120px 100px 80px',
+            padding: '16px',
+            background: '#f8f9fa',
+            borderBottom: '1px solid #dee2e6',
+            fontWeight: '600',
+            fontSize: '14px',
+            color: '#495057'
+          }}>
+            <div>Client Information</div>
+            <div>Service & Date</div>
+            <div>Status</div>
+            <div>Type</div>
+            <div>Actions</div>
+          </div>
+          
+          <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+            {filteredConsultations.map(consult => (
+              <div 
+                key={consult.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.5fr 1fr 120px 100px 80px',
+                  padding: '16px',
+                  borderBottom: '1px solid #f8f9fa',
+                  alignItems: 'center',
+                  ':hover': {
+                    background: '#f8f9fa'
+                  }
+                }}
+              >
+                {/* Client Information */}
                 <div>
-                  <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600' }}>
-                    {form.clientName || 'Unknown Client'}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#6c757d' }}>
-                    {form.clientPhone || 'No phone provided'}
-                  </p>
+                  <div style={{ fontWeight: '600', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {consult.clientName || 'Unknown Client'}
+                    {consult.source === 'manual' && (
+                      <span style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: '#e9ecef',
+                        color: '#6c757d',
+                        borderRadius: '4px'
+                      }}>
+                        Manual
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>
+                    📞 {consult.clientPhone || 'No phone'} 
+                    {consult.clientEmail && ` • ✉️ ${consult.clientEmail}`}
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6c757d' }}>
-                    {form.createdAt?.toDate?.().toLocaleDateString() || 'Today'}
-                  </p>
+                
+                {/* Service & Date */}
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '500' }}>
+                    {consult.serviceNeeded || 'General Consultation'}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>
+                    {consult.createdAt?.toDate?.().toLocaleDateString() || 'Recent'}
+                  </div>
+                </div>
+                
+                {/* Status */}
+                <div>
+                  <select
+                    value={consult.status || 'new'}
+                    onChange={(e) => updateConsultationStatus(consult.id, e.target.value)}
+                    style={{
+                      padding: '6px 10px',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      background: 'white',
+                      width: '100%',
+                      color: consult.status === 'new' ? '#dc3545' : 
+                             consult.status === 'reviewed' ? '#fd7e14' :
+                             consult.status === 'contacted' ? '#17a2b8' :
+                             consult.status === 'scheduled' ? '#28a745' : '#6c757d'
+                    }}
+                  >
+                    <option value="new" style={{ color: '#dc3545' }}>New</option>
+                    <option value="reviewed" style={{ color: '#fd7e14' }}>Reviewed</option>
+                    <option value="contacted" style={{ color: '#17a2b8' }}>Contacted</option>
+                    <option value="scheduled" style={{ color: '#28a745' }}>Scheduled</option>
+                  </select>
+                </div>
+                
+                {/* Type */}
+                <div>
                   <span style={{
                     fontSize: '12px',
                     padding: '4px 8px',
-                    background: form.status === 'new' ? '#fef3c7' : '#d1fae5',
-                    color: form.status === 'new' ? '#92400e' : '#065f46',
-                    borderRadius: '12px'
+                    background: consult.source === 'manual' ? '#e9ecef' : '#d1fae5',
+                    color: consult.source === 'manual' ? '#6c757d' : '#065f46',
+                    borderRadius: '12px',
+                    fontWeight: '500'
                   }}>
-                    {form.status === 'new' ? 'NEW' : 'REVIEWED'}
+                    {consult.source === 'manual' ? 'Manual' : 'Form'}
                   </span>
                 </div>
+                
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setSelectedConsultation(consult)}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    View
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* Add Client Modal */}
+      {showAddClient && (
+        <Modal onClose={() => setShowAddClient(false)}>
+          <AddClientForm 
+            onSubmit={addNewClient}
+            onCancel={() => setShowAddClient(false)}
+          />
+        </Modal>
+      )}
+
+      {/* View Consultation/Client Details Modal */}
+      {selectedConsultation && (
+        <Modal onClose={() => setSelectedConsultation(null)}>
+          <ConsultationDetails 
+            consultation={selectedConsultation}
+            onDelete={deleteConsultation}
+            onClose={() => setSelectedConsultation(null)}
+            onUpdateStatus={updateConsultationStatus}
+          />
+        </Modal>
       )}
     </div>
   );
 };
-// Create ReportsContent component:
+
+// Add Client Form Component (adds to consultations)
+const AddClientForm = ({ onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    preferences: '',
+    notes: ''
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600' }}>
+        Add New Client
+      </h3>
+      
+      <div style={{ display: 'grid', gap: '16px' }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Full Name *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Phone Number *
+          </label>
+          <input
+            type="tel"
+            required
+            value={formData.phone}
+            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Email Address
+          </label>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Service Interest / Preferences
+          </label>
+          <input
+            type="text"
+            value={formData.preferences}
+            onChange={(e) => setFormData({...formData, preferences: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Notes / Additional Information
+          </label>
+          <textarea
+            value={formData.notes}
+            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+            rows="3"
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px',
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              padding: '10px 20px',
+              background: '#e9ecef',
+              color: '#495057',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            style={{
+              padding: '10px 20px',
+              background: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Add Client
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+};
+
+// Consultation Details Component
+const ConsultationDetails = ({ consultation, onDelete, onClose, onUpdateStatus }) => {
+  return (
+    <div>
+      <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600' }}>
+        {consultation.source === 'manual' ? 'Client Details' : 'Consultation Form'}
+      </h3>
+      
+      <div style={{ display: 'grid', gap: '16px' }}>
+        <div style={{ 
+          background: '#f8f9fa', 
+          padding: '20px', 
+          borderRadius: '8px'
+        }}>
+          {/* Basic Info */}
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#495057' }}>Client Information</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Name</strong>
+                <p style={{ margin: 0 }}>{consultation.clientName || 'Not provided'}</p>
+              </div>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Source</strong>
+                <span style={{
+                  padding: '4px 8px',
+                  background: consultation.source === 'manual' ? '#e9ecef' : '#d1fae5',
+                  color: consultation.source === 'manual' ? '#6c757d' : '#065f46',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  {consultation.source === 'manual' ? 'Manual Entry' : 'Online Form'}
+                </span>
+              </div>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '12px' }}>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Phone</strong>
+                <p style={{ margin: 0 }}>{consultation.clientPhone || 'Not provided'}</p>
+              </div>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Email</strong>
+                <p style={{ margin: 0 }}>{consultation.clientEmail || 'Not provided'}</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Service & Status */}
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#495057' }}>Service Details</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Service Needed</strong>
+                <p style={{ margin: 0 }}>{consultation.serviceNeeded || 'Not specified'}</p>
+              </div>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Status</strong>
+                <select
+                  value={consultation.status || 'new'}
+                  onChange={(e) => onUpdateStatus(consultation.id, e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    border: '1px solid #dee2e6',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    background: 'white',
+                    width: '100%'
+                  }}
+                >
+                  <option value="new">New</option>
+                  <option value="reviewed">Reviewed</option>
+                  <option value="contacted">Contacted</option>
+                  <option value="scheduled">Scheduled</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          {/* Form Responses (for form submissions) */}
+          {consultation.consultationResponses && (
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#495057' }}>Form Responses</h4>
+              <div style={{ 
+                background: 'white', 
+                padding: '16px', 
+                borderRadius: '6px',
+                border: '1px solid #dee2e6'
+              }}>
+                {Object.entries(consultation.consultationResponses).map(([key, value]) => (
+                  <div key={key} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #f8f9fa' }}>
+                    <strong style={{ display: 'block', marginBottom: '4px', color: '#495057', fontSize: '14px' }}>
+                      {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
+                    </strong>
+                    <p style={{ margin: 0, color: '#6c757d', fontSize: '14px' }}>{value || 'Not answered'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Additional Info / Notes */}
+          {(consultation.additionalInfo || consultation.notes) && (
+            <div>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#495057' }}>
+                {consultation.source === 'manual' ? 'Notes' : 'Additional Information'}
+              </h4>
+              <div style={{ 
+                background: 'white', 
+                padding: '16px', 
+                borderRadius: '6px',
+                border: '1px solid #dee2e6'
+              }}>
+                <p style={{ margin: 0, color: '#6c757d', fontSize: '14px' }}>
+                  {consultation.additionalInfo || consultation.notes}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {/* Timestamps */}
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #dee2e6' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6c757d' }}>
+              <span>Submitted: {consultation.createdAt?.toDate?.().toLocaleString() || 'Unknown'}</span>
+              {consultation.updatedAt && (
+                <span>Updated: {consultation.updatedAt?.toDate?.().toLocaleString()}</span>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Actions */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div></div> {/* Empty spacer */}
+          
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '8px 16px',
+                background: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to delete this entry?')) {
+                  onDelete(consultation.id);
+                }
+              }}
+              style={{
+                padding: '8px 16px',
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Modal Component (reuse from previous)
+const Modal = ({ children, onClose }) => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '20px'
+  }}>
+    <div style={{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '24px',
+      maxWidth: '600px',
+      width: '100%',
+      maxHeight: '90vh',
+      overflow: 'auto',
+      position: 'relative'
+    }}>
+      <button 
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          background: 'none',
+          border: 'none',
+          fontSize: '20px',
+          cursor: 'pointer',
+          color: '#6c757d'
+        }}
+      >
+        ✕
+      </button>
+      {children}
+    </div>
+  </div>
+);
+
+
+// Edit Client Form (simplified)
+const EditClientForm = ({ client, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: client.name || '',
+    phone: client.phone || '',
+    email: client.email || '',
+    address: client.address || '',
+    notes: client.notes || '',
+    preferences: client.preferences || '',
+    status: client.status || 'active'
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600' }}>
+        Edit Client
+      </h3>
+      
+      <div style={{ display: 'grid', gap: '16px' }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Full Name *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Phone Number *
+          </label>
+          <input
+            type="tel"
+            required
+            value={formData.phone}
+            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Email Address
+          </label>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Address
+          </label>
+          <input
+            type="text"
+            value={formData.address}
+            onChange={(e) => setFormData({...formData, address: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Preferences
+          </label>
+          <input
+            type="text"
+            value={formData.preferences}
+            onChange={(e) => setFormData({...formData, preferences: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Status
+          </label>
+          <select
+            value={formData.status}
+            onChange={(e) => setFormData({...formData, status: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px'
+            }}
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="pending">Pending</option>
+            <option value="vip">VIP</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Notes
+          </label>
+          <textarea
+            value={formData.notes}
+            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+            rows="3"
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #dee2e6',
+              borderRadius: '8px',
+              fontSize: '14px',
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              padding: '10px 20px',
+              background: '#e9ecef',
+              color: '#495057',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            style={{
+              padding: '10px 20px',
+              background: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Update Client
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+};
+
+// Client Details View Component (simplified)
+const ClientDetails = ({ client, onDelete, onClose, onEdit }) => {
+  return (
+    <div>
+      <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600' }}>
+        Client Details
+      </h3>
+      
+      <div style={{ display: 'grid', gap: '16px' }}>
+        <div style={{ 
+          background: '#f8f9fa', 
+          padding: '20px', 
+          borderRadius: '8px'
+        }}>
+          <div style={{ marginBottom: '16px' }}>
+            <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Name</strong>
+            <p style={{ margin: 0, fontSize: '16px', fontWeight: '500' }}>{client.name}</p>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Phone</strong>
+              <p style={{ margin: 0 }}>{client.phone || 'Not provided'}</p>
+            </div>
+            <div>
+              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Email</strong>
+              <p style={{ margin: 0 }}>{client.email || 'Not provided'}</p>
+            </div>
+          </div>
+          
+          {client.address && (
+            <div style={{ marginBottom: '16px' }}>
+              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Address</strong>
+              <p style={{ margin: 0 }}>{client.address}</p>
+            </div>
+          )}
+          
+          {client.preferences && (
+            <div style={{ marginBottom: '16px' }}>
+              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Preferences</strong>
+              <p style={{ margin: 0 }}>{client.preferences}</p>
+            </div>
+          )}
+          
+          <div style={{ marginBottom: '16px' }}>
+            <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Status</strong>
+            <span style={{
+              padding: '4px 12px',
+              background: client.status === 'active' ? '#d1fae5' : 
+                         client.status === 'vip' ? '#fef3c7' :
+                         client.status === 'inactive' ? '#fee2e2' : '#e9ecef',
+              color: client.status === 'active' ? '#065f46' : 
+                     client.status === 'vip' ? '#92400e' :
+                     client.status === 'inactive' ? '#dc2626' : '#495057',
+              borderRadius: '12px',
+              fontSize: '13px',
+              fontWeight: '500'
+            }}>
+              {client.status?.toUpperCase() || 'ACTIVE'}
+            </span>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Member Since</strong>
+            <p style={{ margin: 0 }}>
+              {client.createdAt?.toDate?.().toLocaleDateString() || 'Unknown'}
+            </p>
+          </div>
+          
+          {client.notes && (
+            <div>
+              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Notes</strong>
+              <p style={{ margin: 0 }}>{client.notes}</p>
+            </div>
+          )}
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={onEdit}
+              style={{
+                padding: '8px 16px',
+                background: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Edit Client
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '8px 16px',
+                background: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to delete this client?')) {
+                  onDelete(client.id);
+                }
+              }}
+              style={{
+                padding: '8px 16px',
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+
+
 const ReportsContent = ({ salonId }) => {
   const [workLogs, setWorkLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1364,10 +2519,22 @@ const StaffContent = ({ salonId, ownerData }) => {
     phone: '',
     email: ''
   });
+  const [staffClockStatus, setStaffClockStatus] = useState({});
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     fetchStaff();
+    fetchClockStatus();
   }, []);
+
+ const showToast = (message, type = 'success') => {
+  setToast({ message, type });
+  setTimeout(() => setToast(null), 3000);
+};
+
+  const hideToast = () => {
+    setToast(null);
+  };
 
   const fetchStaff = async () => {
     try {
@@ -1379,19 +2546,130 @@ const StaffContent = ({ salonId, ownerData }) => {
       setStaff(staffList);
     } catch (error) {
       console.error('Error fetching staff:', error);
+      showToast('Failed to load staff', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchClockStatus = async () => {
+    try {
+      const clockQuery = query(
+        collection(db, 'clockRecords'),
+        where('salonId', '==', salonId),
+        where('clockOut', '==', null)
+      );
+      
+      const snapshot = await getDocs(clockQuery);
+      const clockStatus = {};
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        clockStatus[data.staffId] = {
+          clockId: doc.id,
+          clockIn: data.clockIn,
+          isClockedIn: true
+        };
+      });
+      
+      setStaffClockStatus(clockStatus);
+    } catch (error) {
+      console.error('Error fetching clock status:', error);
+    }
+  };
+
+  const handleClockInStaff = async (staffMember) => {
+    try {
+      const now = new Date();
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+      
+      const clockRecord = {
+        staffId: staffMember.id,
+        staffName: staffMember.name,
+        salonId: salonId,
+        clockIn: serverTimestamp(),
+        clockOut: null,
+        date: today.toISOString().split('T')[0],
+        clockedBy: `Owner (${ownerData.name})`,
+        createdAt: serverTimestamp()
+      };
+      
+      const docRef = await addDoc(collection(db, 'clockRecords'), clockRecord);
+      
+      setStaffClockStatus(prev => ({
+        ...prev,
+        [staffMember.id]: {
+          clockId: docRef.id,
+          clockIn: now,
+          isClockedIn: true
+        }
+      }));
+      
+      showToast(`${staffMember.name} has been clocked in`, 'success');
+      
+    } catch (error) {
+      console.error('Error clocking in staff:', error);
+      showToast('Failed to clock in staff', 'error');
+    }
+  };
+
+  const handleClockOutStaff = async (staffMember) => {
+    try {
+      const clockData = staffClockStatus[staffMember.id];
+      if (!clockData) {
+        showToast('No active clock record found', 'warning');
+        return;
+      }
+      
+      const now = new Date();
+      let clockInTime = clockData.clockIn;
+      
+      if (clockInTime?.toDate) {
+        clockInTime = clockInTime.toDate();
+      } else if (clockInTime) {
+        clockInTime = new Date(clockInTime);
+      }
+      
+      const hours = (now - clockInTime) / (1000 * 60 * 60);
+      
+      await updateDoc(doc(db, 'clockRecords', clockData.clockId), {
+        clockOut: serverTimestamp(),
+        duration: hours.toFixed(2),
+        clockedOutBy: `Owner (${ownerData.name})`
+      });
+      
+      setStaffClockStatus(prev => {
+        const updated = { ...prev };
+        delete updated[staffMember.id];
+        return updated;
+      });
+      
+      showToast(`${staffMember.name} clocked out • ${hours.toFixed(2)} hours`, 'success');
+      
+    } catch (error) {
+      console.error('Error clocking out staff:', error);
+      showToast('Failed to clock out staff', 'error');
+    }
+  };
+
+  const formatClockTime = (timestamp) => {
+    if (!timestamp) return '--:--';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '--:--';
+    }
+  };
+
   const generateUniqueCode = () => {
-    // Generate 6-character alphanumeric code
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
   const handleAddStaff = async () => {
     if (!newStaff.name.trim() || !newStaff.phone.trim()) {
-      alert('Name and phone number are required');
+      showToast('Name and phone number are required', 'warning');
       return;
     }
 
@@ -1403,457 +2681,412 @@ const StaffContent = ({ salonId, ownerData }) => {
         email: newStaff.email.trim() || '',
         linkCode: uniqueCode,
         isActive: true,
-        createdAt: new Date().toISOString()
+        createdAt: serverTimestamp()
       };
 
-      // Add to Firestore
       await addDoc(collection(db, 'salons', salonId, 'staff'), staffData);
-      
-      // Refresh staff list
       await fetchStaff();
       
-      // Reset form and close
       setNewStaff({ name: '', phone: '', email: '' });
       setShowAddForm(false);
       
-      // Show success with link
       const staffLink = `${window.location.origin}/staff/${uniqueCode}`;
-      alert(`Staff added successfully!\n\nShare this link with them:\n${staffLink}\n\nThey can use it to clock in/out.`);
+      showToast('Staff added successfully!', 'success');
+      
+      // Copy link automatically
+     
       
     } catch (error) {
       console.error('Error adding staff:', error);
-      alert('Failed to add staff. Please try again.');
+      showToast('Failed to add staff', 'error');
     }
   };
 
   const handleDeleteStaff = async (staffId, staffName) => {
-    if (!window.confirm(`Are you sure you want to remove ${staffName}?`)) {
-      return;
-    }
-
-    try {
-      // In MVP, we'll just delete from Firestore
-      // Later we can do soft delete (isActive: false)
-      await deleteDoc(doc(db, 'salons', salonId, 'staff', staffId));
-      
-      // Refresh staff list
-      await fetchStaff();
-      alert(`${staffName} has been removed.`);
-      
-    } catch (error) {
-      console.error('Error deleting staff:', error);
-      alert('Failed to delete staff. Please try again.');
-    }
+    // Custom confirmation modal instead of window.confirm
+    setToast({
+      message: `Remove ${staffName}?`,
+      type: 'warning',
+      action: {
+        label: 'Remove',
+        onClick: async () => {
+          try {
+            await deleteDoc(doc(db, 'salons', salonId, 'staff', staffId));
+            await fetchStaff();
+            showToast(`${staffName} has been removed`, 'success');
+            setToast(null); // Clear the confirmation toast
+          } catch (error) {
+            console.error('Error deleting staff:', error);
+            showToast('Failed to delete staff', 'error');
+            setToast(null);
+          }
+        }
+      },
+      cancelAction: {
+        label: 'Cancel',
+        onClick: () => setToast(null)
+      }
+    });
   };
 
-  const copyToClipboard = (text, event) => {
-    if (event && event.currentTarget) {
-      navigator.clipboard.writeText(text);
-      
-      // Change button appearance to show success
-      const btn = event.currentTarget;
-      const originalText = btn.textContent;
-      const originalBackground = btn.style.background;
-      const originalColor = btn.style.color;
-      
-      btn.textContent = 'Copied!';
-      btn.style.background = '#10B981';
-      btn.style.color = 'white';
-      
-      // Revert after 1.5 seconds
-      setTimeout(() => {
-        btn.textContent = originalText;
-        btn.style.background = originalBackground;
-        btn.style.color = originalColor;
-      }, 1500);
-    } else {
-      // Fallback if no event
-      navigator.clipboard.writeText(text);
-      alert('Link copied to clipboard!');
-    }
+  const copyToClipboard = (text, staffName) => {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(`${staffName}'s link copied`, 'success');
+    }).catch(() => {
+      showToast('Failed to copy link', 'error');
+    });
   };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+      <div className="staff-loading">
         <div className="loading-spinner"></div>
-        <p style={{ color: '#6c757d', marginTop: '10px' }}>Loading staff...</p>
+        <p className="loading-text">Loading staff...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '24px' 
-      }}>
-        <div>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 4px 0' }}>
-            Staff Members
-          </h2>
-          <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
-            Add staff and share their clock-in links
-          </p>
-        </div>
-        <button 
-          onClick={() => setShowAddForm(true)}
-          style={{
-            padding: '10px 16px',
-            background: 'var(--primary-color)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <span>👤</span> Add Staff
-        </button>
-      </div>
-
-      {/* Add Staff Form Modal */}
-      {showAddForm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px'
+    <>
+      <style>{toastStyles}</style>
+      
+      <div style={{ padding: '20px' }}>
+        {/* Header */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '24px',
+          flexWrap: 'wrap',
+          gap: '16px'
         }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            width: '100%',
-            maxWidth: '400px',
-            overflow: 'hidden'
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              padding: '20px',
-              borderBottom: '1px solid #e9ecef',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
-                Add New Staff
-              </h3>
-              <button 
-                onClick={() => setShowAddForm(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#6c757d',
-                  padding: '0',
-                  width: '30px',
-                  height: '30px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Name Field */}
-                <div>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    fontWeight: '500',
-                    fontSize: '14px'
-                  }}>
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={newStaff.name}
-                    onChange={(e) => setNewStaff({...newStaff, name: e.target.value})}
-                    placeholder="Sarah Johnson"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #e9ecef',
-                      borderRadius: '8px',
-                      fontSize: '16px'
-                    }}
-                    autoFocus
-                  />
-                </div>
-
-                {/* Phone Field */}
-                <div>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    fontWeight: '500',
-                    fontSize: '14px'
-                  }}>
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    value={newStaff.phone}
-                    onChange={(e) => setNewStaff({...newStaff, phone: e.target.value})}
-                    placeholder="1234567890"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #e9ecef',
-                      borderRadius: '8px',
-                      fontSize: '16px'
-                    }}
-                  />
-                  <small style={{ color: '#6c757d', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                    Used for WhatsApp notifications
-                  </small>
-                </div>
-
-                {/* Email Field (Optional) */}
-                <div>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    fontWeight: '500',
-                    fontSize: '14px'
-                  }}>
-                    Email (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={newStaff.email}
-                    onChange={(e) => setNewStaff({...newStaff, email: e.target.value})}
-                    placeholder="sarah@salon.com"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #e9ecef',
-                      borderRadius: '8px',
-                      fontSize: '16px'
-                    }}
-                  />
-                </div>
-
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                  <button
-                    onClick={() => setShowAddForm(false)}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      background: '#e9ecef',
-                      color: '#495057',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAddStaff}
-                    style={{
-                      flex: 2,
-                      padding: '12px',
-                      background: 'var(--primary-color)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Add Staff Member
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 4px 0' }}>
+              Staff Management
+            </h2>
+            <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
+              Manage staff, clock in/out, and share access links
+            </p>
           </div>
-        </div>
-      )}
-
-      {/* Staff List */}
-      {staff.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '40px 20px',
-          background: '#f8f9fa',
-          borderRadius: '12px',
-          border: '2px dashed #dee2e6',
-          color: '#1a1a1a',
-        }}>
-          <div style={{
-            width: '60px',
-            height: '60px',
-            background: '#e9ecef',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '24px',
-            margin: '0 auto 16px'
-          }}>
-            👤
-          </div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' , color: '#1a1a1a'}}>
-            No Staff Members Yet
-          </h3>
-          <p style={{ color: '#6c757d', fontSize: '14px', margin: '0 0 20px 0' }}>
-            Add your first staff member to get started
-          </p>
           <button 
             onClick={() => setShowAddForm(true)}
-            style={{
-              padding: '10px 20px',
-              background: 'var(--primary-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
+            className="add-staff-btn"
           >
-            Add First Staff Member
+            <span>👤</span> Add Staff
           </button>
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {staff.map((member) => {
-            const staffLink = `${window.location.origin}/staff/${member.linkCode}`;
-            return (
-              <div 
-                key={member.id}
-                style={{
-                  background: 'white',
-                  border: '1px solid #e9ecef',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  position: 'relative',
-                  color: '#1a1a1a' 
-                }}
-              >
-                {/* Staff Info */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    background: 'var(--primary-color)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#1a1a1a' ,
-                    fontWeight: '600',
-                    fontSize: '16px',
-                    flexShrink: 0
-                  }}>
-                    {member.name?.charAt(0) || 'S'}
+
+        {/* Clock Status Summary */}
+        <div className="staff-summary">
+          <div className="staff-stats">
+            <p className="staff-stat">Total Staff: {staff.length}</p>
+            <p className="staff-stat">Clocked In: {Object.keys(staffClockStatus).length}</p>
+          </div>
+          <div className="status-indicators">
+            <p className="status-indicator">
+              <span className="status-dot clocked-in"></span>
+              Clocked In
+            </p>
+            <p className="status-indicator">
+              <span className="status-dot clocked-out"></span>
+              Clocked Out
+            </p>
+          </div>
+        </div>
+
+        {/* Staff List */}
+        {staff.length === 0 ? (
+          <div className="empty-staff-state">
+            <div className="empty-staff-icon">
+              👤
+            </div>
+            <h3 className="empty-staff-title">
+              No Staff Members Yet
+            </h3>
+            <p className="empty-staff-message">
+              Add your first staff member to get started
+            </p>
+            <button 
+              onClick={() => setShowAddForm(true)}
+              className="add-staff-btn"
+              style={{ margin: '0 auto' }}
+            >
+              Add First Staff Member
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {staff.map((member) => {
+              const staffLink = `${window.location.origin}/staff/${member.linkCode}`;
+              const isClockedIn = staffClockStatus[member.id]?.isClockedIn || false;
+              const clockInTime = staffClockStatus[member.id]?.clockIn;
+              
+              return (
+                <div 
+                  key={member.id}
+                  className={`staff-card ${isClockedIn ? 'clocked-in' : 'clocked-out'}`}
+                >
+                  {/* Clock status indicator */}
+                  <div className={`clock-status-badge ${isClockedIn ? 'clocked-in' : 'clocked-out'}`}>
+                    {isClockedIn ? 'CLOCKED IN' : 'CLOCKED OUT'}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '500' ,color: '#1a1a1a' }}>
-                      {member.name}
-                    </h4>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      {member.phone && (
-                        <span style={{ fontSize: '14px', color: '#495057', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          📞 {member.phone}
-                        </span>
+                  
+                  {/* Staff Info */}
+                  <div className="staff-info">
+                    <div className={`staff-avatar ${isClockedIn ? 'clocked-in' : 'clocked-out'}`}>
+                      {member.name?.charAt(0) || 'S'}
+                    </div>
+                    <div className="staff-details">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                        <div>
+                          <h4 className="staff-name">
+                            {member.name}
+                          </h4>
+                          <div className="staff-contact">
+                            {member.phone && (
+                              <span className="contact-item">
+                                📞 {member.phone}
+                              </span>
+                            )}
+                            {member.email && (
+                              <span className="contact-item">
+                                ✉️ {member.email}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {isClockedIn && clockInTime && (
+                          <div className="clock-time-display">
+                            <p className="clock-time-label">
+                              Since:
+                            </p>
+                            <p className="clock-time-value">
+                              {formatClockTime(clockInTime)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Clock In/Out Controls */}
+                  <div className="staff-actions">
+                    <button
+                      onClick={() => isClockedIn ? handleClockOutStaff(member) : handleClockInStaff(member)}
+                      className={`clock-btn ${isClockedIn ? 'clock-btn-out' : 'clock-btn-in'}`}
+                    >
+                      {isClockedIn ? (
+                        <>
+                          <span>⏰</span> Clock Out
+                        </>
+                      ) : (
+                        <>
+                          <span>⏰</span> Clock In
+                        </>
                       )}
-                      {member.email && (
-                        <span style={{ fontSize: '14px', color: '#495057', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          ✉️ {member.email}
-                        </span>
-                      )}
+                    </button>
+                    
+                    <button
+                      onClick={() => handleDeleteStaff(member.id, member.name)}
+                      className="delete-btn"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
+
+                  {/* Staff Link Display */}
+                  <div className="staff-link-container">
+                    <div className="staff-link-header">
+                      <span className="staff-link-label">Staff Link:</span>
+                      <button
+                        onClick={() => copyToClipboard(staffLink, member.name)}
+                        className="copy-link-btn"
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
+                    <div className="staff-link">
+                      {staffLink}
                     </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                {/* Staff Link Display */}
-                <div style={{ 
-                  marginBottom: '12px', 
-                  padding: '8px', 
-                  background: '#f8f9fa', 
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontFamily: 'monospace',
-                  wordBreak: 'break-all'
-                }}>
-                  {staffLink}
-                </div>
+        {/* Add Staff Form Modal */}
+        {showAddForm && (
+          <div className="staff-modal-overlay">
+            <div className="staff-modal">
+              {/* Modal Header */}
+              <div className="modal-header">
+                <h3 className="modal-title">
+                  Add New Staff
+                </h3>
+                <button 
+                  onClick={() => setShowAddForm(false)}
+                  className="modal-close"
+                >
+                  ×
+                </button>
+              </div>
 
-                {/* Action Buttons - ONLY COPY & DELETE */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={(e) => copyToClipboard(staffLink, e)}  // ✅ Pass event as second parameter
-                    style={{
-                      flex: 2,
-                      padding: '8px',
-                      background: '#e9ecef',
-                      color: '#495057',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    📋 Copy Link
-                  </button>
-                  <button
-                    onClick={() => handleDeleteStaff(member.id, member.name)}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      background: '#fee2e2',
-                      color: '#dc2626',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    🗑️ Delete
-                  </button>
+              {/* Modal Body */}
+              <div className="modal-body">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Name Field */}
+                  <div className="form-group">
+                    <label className="form-label required">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newStaff.name}
+                      onChange={(e) => setNewStaff({...newStaff, name: e.target.value})}
+                      placeholder="Sarah Johnson"
+                      className="form-input"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Phone Field */}
+                  <div className="form-group">
+                    <label className="form-label required">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={newStaff.phone}
+                      onChange={(e) => setNewStaff({...newStaff, phone: e.target.value})}
+                      placeholder="1234567890"
+                      className="form-input"
+                    />
+                    <span className="form-help">
+                      Used for WhatsApp notifications
+                    </span>
+                  </div>
+
+                  {/* Email Field (Optional) */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      Email (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={newStaff.email}
+                      onChange={(e) => setNewStaff({...newStaff, email: e.target.value})}
+                      placeholder="sarah@salon.com"
+                      className="form-input"
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="modal-actions">
+                    <button
+                      onClick={() => setShowAddForm(false)}
+                      className="modal-cancel-btn"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddStaff}
+                      className="modal-submit-btn"
+                    >
+                      Add Staff Member
+                    </button>
+                  </div>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Toast Notifications */}
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Confirmation Toast with Actions */}
+      {toast?.action && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#1F2937',
+          color: 'white',
+          padding: '16px',
+          borderRadius: '12px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+          zIndex: 10000,
+          minWidth: '300px',
+          maxWidth: '90%',
+          animation: 'slideUp 0.3s ease'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px',
+            marginBottom: '16px'
+          }}>
+            <span style={{ fontSize: '20px' }}>
+              {toast.type === 'warning' ? '⚠️' : 'ℹ️'}
+            </span>
+            <span style={{ fontSize: '15px', fontWeight: '500', flex: 1 }}>
+              {toast.message}
+            </span>
+          </div>
+          
+          <div style={{ 
+            display: 'flex', 
+            gap: '10px',
+            justifyContent: 'flex-end'
+          }}>
+            {toast.cancelAction && (
+              <button
+                onClick={toast.cancelAction.onClick}
+                style={{
+                  padding: '8px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  color: 'white',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                {toast.cancelAction.label}
+              </button>
+            )}
+            
+            {toast.action && (
+              <button
+                onClick={toast.action.onClick}
+                style={{
+                  padding: '8px 16px',
+                  background: toast.type === 'warning' ? '#DC2626' : '#10B981',
+                  border: 'none',
+                  color: 'white',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                {toast.action.label}
+              </button>
+            )}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
@@ -1863,18 +3096,49 @@ const ServicesContent = ({ salonId }) => {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingService, setEditingService] = useState(null);
-  const [categories] = useState(['Hair', 'Nails', 'Beauty', 'Spa', 'Makeup', 'Massage', 'Bridal']);
+  const [categories, setCategories] = useState([]); // Start with empty categories
   const [activeCategory, setActiveCategory] = useState('All');
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [toast, setToast] = useState(null); // Add toast state
   
   const [newService, setNewService] = useState({
     name: '',
-    category: 'Hair',
+    category: '',
     description: '',
     price: '',
     duration: '30',
     imageUrl: '',
     isActive: true
   });
+
+  // Simple toast function
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // Add toast styles to document
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = `
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+    `;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
 
   // Filter services based on active category
   const filteredServices = activeCategory === 'All' 
@@ -1893,37 +3157,125 @@ const ServicesContent = ({ salonId }) => {
         ...doc.data()
       }));
       setServices(servicesList);
+      
+      // Extract unique categories from services
+      const uniqueCategories = [...new Set(servicesList.map(service => service.category))];
+      setCategories(uniqueCategories);
     } catch (error) {
       console.error('Error fetching services:', error);
+      showToast('Failed to load services', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle image upload (mock for now - in production use Firebase Storage)
+  // Add new category
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) {
+      showToast('Please enter a category name', 'error');
+      return;
+    }
+    
+    const categoryName = newCategoryName.trim();
+    
+    // Check if category already exists
+    if (categories.includes(categoryName)) {
+      showToast('Category already exists!', 'error');
+      return;
+    }
+    
+    // Add to categories list
+    setCategories(prev => [...prev, categoryName]);
+    
+    // If this is the first category, set it as default
+    if (categories.length === 0) {
+      setNewService(prev => ({ ...prev, category: categoryName }));
+    }
+    
+    setNewCategoryName('');
+    setShowAddCategory(false);
+    showToast(`"${categoryName}" category added!`);
+  };
+
+  // Delete category (only if no services use it)
+  const handleDeleteCategory = (categoryToDelete) => {
+    // Check if any services use this category
+    const servicesInCategory = services.filter(service => service.category === categoryToDelete);
+    
+    if (servicesInCategory.length > 0) {
+      showToast(`Cannot delete "${categoryToDelete}" category. ${servicesInCategory.length} service(s) are using it. Please reassign or delete those services first.`, 'error');
+      return;
+    }
+    
+    if (window.confirm(`Delete "${categoryToDelete}" category?`)) {
+      setCategories(prev => prev.filter(cat => cat !== categoryToDelete));
+      
+      // If the deleted category was selected, switch to "All"
+      if (activeCategory === categoryToDelete) {
+        setActiveCategory('All');
+      }
+      
+      // If the deleted category was selected in newService, switch to first category or empty
+      if (newService.category === categoryToDelete) {
+        setNewService(prev => ({ ...prev, category: categories.length > 1 ? categories[0] : '' }));
+      }
+      
+      showToast(`"${categoryToDelete}" category deleted`);
+    }
+  };
+
+  // Handle image upload
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // For MVP: Use a mock URL or base64
-    // In production: Upload to Firebase Storage
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNewService({...newService, imageUrl: reader.result});
-    };
-    reader.readAsDataURL(file);
+    // Check file size (limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image size should be less than 5MB', 'error');
+      return;
+    }
+
+    // Check file type
+    if (!file.type.match('image.*')) {
+      showToast('Please select an image file', 'error');
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewService({...newService, imageUrl: reader.result});
+        showToast('Image uploaded!');
+      };
+      reader.onerror = () => {
+        showToast('Failed to read image', 'error');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      showToast('Failed to upload image', 'error');
+    }
   };
 
   const handleSaveService = async () => {
-    if (!newService.name.trim() || !newService.price) {
-      alert('Please fill in service name and price');
+    if (!newService.name.trim()) {
+      showToast('Please enter service name', 'error');
+      return;
+    }
+
+    if (!newService.price) {
+      showToast('Please enter price', 'error');
+      return;
+    }
+
+    if (!newService.category && categories.length > 0) {
+      showToast('Please select a category', 'error');
       return;
     }
 
     try {
       const serviceData = {
         name: newService.name.trim(),
-        category: newService.category,
+        category: newService.category || 'Uncategorized',
         description: newService.description.trim() || '',
         price: parseFloat(newService.price),
         duration: parseInt(newService.duration) || 30,
@@ -1936,18 +3288,18 @@ const ServicesContent = ({ salonId }) => {
       if (editingService) {
         // Update existing service
         await updateDoc(doc(db, 'salons', salonId, 'services', editingService.id), serviceData);
-        alert('Service updated!');
+        showToast('Service updated!');
       } else {
         // Add new service
         await addDoc(collection(db, 'salons', salonId, 'services'), serviceData);
-        alert('Service added!');
+        showToast('Service added!');
       }
 
       // Refresh and reset
       await fetchServices();
       setNewService({
         name: '',
-        category: 'Hair',
+        category: categories.length > 0 ? categories[0] : '',
         description: '',
         price: '',
         duration: '30',
@@ -1959,7 +3311,7 @@ const ServicesContent = ({ salonId }) => {
 
     } catch (error) {
       console.error('Error saving service:', error);
-      alert('Failed to save service. Please try again.');
+      showToast('Failed to save service. Please try again.', 'error');
     }
   };
 
@@ -1969,10 +3321,10 @@ const ServicesContent = ({ salonId }) => {
     try {
       await deleteDoc(doc(db, 'salons', salonId, 'services', serviceId));
       await fetchServices();
-      alert('Service deleted');
+      showToast('Service deleted');
     } catch (error) {
       console.error('Error deleting service:', error);
-      alert('Failed to delete service.');
+      showToast('Failed to delete service.', 'error');
     }
   };
 
@@ -1980,7 +3332,7 @@ const ServicesContent = ({ salonId }) => {
     setEditingService(service);
     setNewService({
       name: service.name,
-      category: service.category || 'Hair',
+      category: service.category || '',
       description: service.description || '',
       price: service.price.toString(),
       duration: service.duration?.toString() || '30',
@@ -1989,7 +3341,6 @@ const ServicesContent = ({ salonId }) => {
     });
     setShowAddForm(true);
   };
-
   if (loading) {
     return (
       <div className="loading-container">
@@ -2042,7 +3393,8 @@ const ServicesContent = ({ salonId }) => {
         gap: '8px', 
         marginBottom: '20px',
         overflowX: 'auto',
-        paddingBottom: '10px'
+        paddingBottom: '10px',
+        alignItems: 'center'
       }}>
         <button
           onClick={() => setActiveCategory('All')}
@@ -2062,29 +3414,155 @@ const ServicesContent = ({ salonId }) => {
         {categories.map(cat => {
           const count = services.filter(s => s.category === cat).length;
           return (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              style={{
-                padding: '8px 16px',
-                background: activeCategory === cat ? 'var(--primary-color)' : 'white',
-                color: activeCategory === cat ? 'white' : '#495057',
-                border: '1px solid #e9ecef',
-                borderRadius: '20px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                opacity: count === 0 ? 0.5 : 1
-              }}
-              disabled={count === 0}
-            >
-              {cat} ({count})
-            </button>
+            <div key={cat} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <button
+                onClick={() => setActiveCategory(cat)}
+                style={{
+                  padding: '8px 16px',
+                  background: activeCategory === cat ? 'var(--primary-color)' : 'white',
+                  color: activeCategory === cat ? 'white' : '#495057',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '20px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  opacity: count === 0 ? 0.5 : 1,
+                  paddingRight: '32px'
+                }}
+                disabled={count === 0}
+              >
+                {cat} ({count})
+              </button>
+              {count === 0 && cat !== 'Hair' && cat !== 'Nails' && cat !== 'Beauty' && (
+                <button
+                  onClick={() => handleDeleteCategory(cat)}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#dc2626',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Delete category"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           );
         })}
+        
+        {/* Add Category Button */}
+        <button
+          onClick={() => setShowAddCategory(true)}
+          style={{
+            padding: '8px 16px',
+            background: 'transparent',
+            color: 'var(--primary-color)',
+            border: '2px dashed var(--primary-color)',
+            borderRadius: '20px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+          title="Add new category"
+        >
+          <span style={{ fontSize: '18px' }}>+</span> Add Category
+        </button>
       </div>
 
-      {/* Services Grid */}
+      {/* Add Category Modal */}
+      {showAddCategory && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1001,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '400px',
+            padding: '20px'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>
+              Add New Category
+            </h3>
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Enter category name (e.g., Waxing, Kids)"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #e9ecef',
+                borderRadius: '8px',
+                fontSize: '16px',
+                marginBottom: '16px'
+              }}
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+            />
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => {
+                  setShowAddCategory(false);
+                  setNewCategoryName('');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#e9ecef',
+                  color: '#495057',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddCategory}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'var(--primary-color)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Add Category
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Services Grid - REST OF THE CODE REMAINS THE SAME */}
       {filteredServices.length === 0 ? (
         <div style={{
           textAlign: 'center',
@@ -2274,30 +3752,35 @@ const ServicesContent = ({ salonId }) => {
                     ✏️ Edit
                   </button>
                   <button
-                    onClick={() => {
-                      // Toggle active status
-                      const docRef = doc(db, 'salons', salonId, 'services', service.id);
-                      updateDoc(docRef, { isActive: !service.isActive });
-                      fetchServices();
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      background: service.isActive ? '#fee2e2' : '#d1fae5',
-                      color: service.isActive ? '#dc2626' : '#065f46',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    {service.isActive ? '⏸️ Deactivate' : '▶️ Activate'}
-                  </button>
+  onClick={async () => {
+    try {
+      const docRef = doc(db, 'salons', salonId, 'services', service.id);
+      await updateDoc(docRef, { isActive: !service.isActive });
+      await fetchServices();
+      showToast(`Service ${service.isActive ? 'deactivated' : 'activated'}`);
+    } catch (error) {
+      console.error('Error toggling service status:', error);
+      showToast('Failed to update service status', 'error');
+    }
+  }}
+  style={{
+    flex: 1,
+    padding: '8px',
+    background: service.isActive ? '#fee2e2' : '#d1fae5',
+    color: service.isActive ? '#dc2626' : '#065f46',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '4px'
+  }}
+>
+  {service.isActive ? '⏸️ Deactivate' : '▶️ Activate'}
+</button>
                   <button
                     onClick={() => handleDeleteService(service.id, service.name)}
                     style={{
@@ -2360,7 +3843,7 @@ const ServicesContent = ({ salonId }) => {
                   setEditingService(null);
                   setNewService({
                     name: '',
-                    category: 'Hair',
+                    category: categories[0] || 'Hair',
                     description: '',
                     price: '',
                     duration: '30',
@@ -2415,16 +3898,35 @@ const ServicesContent = ({ salonId }) => {
                   />
                 </div>
 
-                {/* Category */}
+                {/* Category - Updated with Add Category button */}
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    fontWeight: '500',
-                    fontSize: '14px'
-                  }}>
-                    Category *
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ 
+                      fontWeight: '500',
+                      fontSize: '14px'
+                    }}>
+                      Category *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setShowAddCategory(true);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--primary-color)',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span style={{ fontSize: '16px' }}>+</span> Add New
+                    </button>
+                  </div>
                   <select
                     value={newService.category}
                     onChange={(e) => setNewService({...newService, category: e.target.value})}
@@ -2614,7 +4116,7 @@ const ServicesContent = ({ salonId }) => {
                       setEditingService(null);
                       setNewService({
                         name: '',
-                        category: 'Hair',
+                        category: categories[0] || 'Hair',
                         description: '',
                         price: '',
                         duration: '30',
@@ -2657,6 +4159,13 @@ const ServicesContent = ({ salonId }) => {
             </div>
           </div>
         </div>
+      )}
+       {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );
