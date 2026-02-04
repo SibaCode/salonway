@@ -8,7 +8,7 @@ import OwnerDashboard from './components/owner/OwnerDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import StaffDashboard from './components/staff/StaffDashboard';
 import ClientConsultation from './components/client/ClientConsultation';
-import CataloguePage from './components/CataloguePage';
+import CataloguePage from './components/owner/CataloguePage';
 
 function App() {
   const [loading, setLoading] = useState(true);
