@@ -9,7 +9,7 @@ import {
   doc,
   where
 } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db } from '../../firebase';
 
 const ClientsContent = ({ salonId, salonData }) => {
   const [clients, setClients] = useState([]);

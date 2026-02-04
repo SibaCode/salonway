@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db } from '../../firebase';
 import { FaCut, FaLock, FaEnvelope } from 'react-icons/fa'; // Changed FaSalon to FaCut
 
 const OwnerLogin = () => {

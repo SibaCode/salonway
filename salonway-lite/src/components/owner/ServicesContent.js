@@ -10,7 +10,7 @@ import {
   getDoc,
   serverTimestamp 
 } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db } from '../../firebase';
 
 // import { db } from './firebase'; // Adjust this import based on your setup
 

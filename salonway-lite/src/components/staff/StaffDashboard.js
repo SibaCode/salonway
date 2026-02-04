@@ -12,7 +12,7 @@ import {
   updateDoc,
   onSnapshot
 } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db } from '../../firebase';
 import './css/StaffDashboard.css';
 
 // Toast Notification Component

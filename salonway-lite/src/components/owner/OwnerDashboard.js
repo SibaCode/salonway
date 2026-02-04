@@ -14,7 +14,7 @@ import {
   setDoc,
   limit 
 } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db } from '../../firebase';
 import {
   FaUsers,
   FaCog,
