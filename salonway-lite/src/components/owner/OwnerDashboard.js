@@ -111,10 +111,7 @@ const OwnerDashboard = () => {
   const [ownerData, setOwnerData] = useState(null);
   const [salonData, setSalonData] = useState(null);
   const [loading, setLoading] = useState(true);
-const [errorState, setErrorState] = useState({  hasError: false,
-  message: '',
-  details: ''
-});
+
 
 const handleLogout = useCallback(() => {
   console.log('🚪 Logging out...');
@@ -131,37 +128,37 @@ const handleLogout = useCallback(() => {
   }, 100);
 }, [navigate]);
 
-const checkAuth = useCallback(async () => {
-  try {
-    const owner = JSON.parse(localStorage.getItem('salonOwner'));
-    if (!owner) {
-      navigate('/owner/login');
-      return;
-    }
+// const checkAuth = useCallback(async () => {
+//   try {
+//     const owner = JSON.parse(localStorage.getItem('salonOwner'));
+//     if (!owner) {
+//       navigate('/owner/login');
+//       return;
+//     }
 
-    const salonRef = doc(db, 'salons', owner.salonId);
-    const salonSnap = await getDoc(salonRef);
+//     const salonRef = doc(db, 'salons', owner.salonId);
+//     const salonSnap = await getDoc(salonRef);
 
-    if (salonSnap.exists()) {
-      const data = { id: salonSnap.id, ...salonSnap.data() };
-      setSalonData(data);
-      setOwnerData(owner);
+//     if (salonSnap.exists()) {
+//       const data = { id: salonSnap.id, ...salonSnap.data() };
+//       setSalonData(data);
+//       setOwnerData(owner);
       
-      document.documentElement.style.setProperty('--primary-color', data.primaryColor || '#3B82F6');
-      document.documentElement.style.setProperty('--secondary-color', data.secondaryColor || '#10B981');
-    } else {
-      // Direct logout instead of calling handleLogout
-      localStorage.removeItem('salonOwner');
-      navigate('/owner/login');
-    }
-  } catch (error) {
-    console.error('Auth check error:', error);
-    localStorage.removeItem('salonOwner');
-    navigate('/owner/login');
-  } finally {
-    setLoading(false);
-  }
-}, [navigate]); // ✅ Only navigate as dependency
+//       document.documentElement.style.setProperty('--primary-color', data.primaryColor || '#3B82F6');
+//       document.documentElement.style.setProperty('--secondary-color', data.secondaryColor || '#10B981');
+//     } else {
+//       // Direct logout instead of calling handleLogout
+//       localStorage.removeItem('salonOwner');
+//       navigate('/owner/login');
+//     }
+//   } catch (error) {
+//     console.error('Auth check error:', error);
+//     localStorage.removeItem('salonOwner');
+//     navigate('/owner/login');
+//   } finally {
+//     setLoading(false);
+//   }
+// }, [navigate]); // ✅ Only navigate as dependency
 
   const BottomNav = () => (
     <nav className="bottom-nav">
@@ -219,59 +216,59 @@ const checkAuth = useCallback(async () => {
   );
 }
 
-if (errorState.hasError) {
-  return (
-    <div className="error-container">
-      <div style={{ textAlign: 'center', padding: '40px' }}>
-        <div style={{ fontSize: '48px', color: '#EF4444', marginBottom: '20px' }}>
-          ⚠️
-        </div>
-        <h2 style={{ marginBottom: '10px' }}>Connection Issue</h2>
-        <p style={{ color: '#6c757d', marginBottom: '20px' }}>
-          {errorState.message}
-        </p>
-        <div style={{ 
-          background: '#F3F4F6', 
-          padding: '15px', 
-          borderRadius: '8px',
-          marginBottom: '20px',
-          fontSize: '12px',
-          textAlign: 'left'
-        }}>
-          <strong>Debug Info:</strong>
-          <div style={{ marginTop: '5px' }}>{errorState.details}</div>
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          style={{
-            padding: '10px 20px',
-            background: '#3B82F6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer'
-          }}
-        >
-          Retry
-        </button>
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: '10px 20px',
-            background: '#F3F4F6',
-            color: '#374151',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            marginLeft: '10px'
-          }}
-        >
-          Back to Login
-        </button>
-      </div>
-    </div>
-  );
-}
+// if (errorState.hasError) {
+//   return (
+//     <div className="error-container">
+//       <div style={{ textAlign: 'center', padding: '40px' }}>
+//         <div style={{ fontSize: '48px', color: '#EF4444', marginBottom: '20px' }}>
+//           ⚠️
+//         </div>
+//         <h2 style={{ marginBottom: '10px' }}>Connection Issue</h2>
+//         <p style={{ color: '#6c757d', marginBottom: '20px' }}>
+//           {errorState.message}
+//         </p>
+//         <div style={{ 
+//           background: '#F3F4F6', 
+//           padding: '15px', 
+//           borderRadius: '8px',
+//           marginBottom: '20px',
+//           fontSize: '12px',
+//           textAlign: 'left'
+//         }}>
+//           <strong>Debug Info:</strong>
+//           <div style={{ marginTop: '5px' }}>{errorState.details}</div>
+//         </div>
+//         <button
+//           onClick={() => window.location.reload()}
+//           style={{
+//             padding: '10px 20px',
+//             background: '#3B82F6',
+//             color: 'white',
+//             border: 'none',
+//             borderRadius: '8px',
+//             cursor: 'pointer'
+//           }}
+//         >
+//           Retry
+//         </button>
+//         <button
+//           onClick={handleLogout}
+//           style={{
+//             padding: '10px 20px',
+//             background: '#F3F4F6',
+//             color: '#374151',
+//             border: 'none',
+//             borderRadius: '8px',
+//             cursor: 'pointer',
+//             marginLeft: '10px'
+//           }}
+//         >
+//           Back to Login
+//         </button>
+//       </div>
+//     </div>
+//   );
+// }
 
   if (!ownerData || !salonData) {
     return null;
