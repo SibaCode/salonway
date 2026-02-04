@@ -71,11 +71,14 @@ const ServicesContent = ({ salonId, salonData = {}, ownerData = {} }) => {
     ? services 
     : services.filter(service => service.category === activeCategory);
 
-  useEffect(() => {
-    fetchServices();
-    loadCatalogueSettings();
-  }, [salonId]);
-
+//   useEffect(() => {
+//     fetchServices();
+//     loadCatalogueSettings();
+//   }, [salonId]);
+useEffect(() => {
+  fetchServices();
+  loadCatalogueSettings();
+}, [fetchServices, loadCatalogueSettings]);
   const fetchServices = async () => {
     try {
       const servicesSnapshot = await getDocs(collection(db, 'salons', salonId, 'services'));
@@ -315,21 +318,21 @@ const ServicesContent = ({ salonId, salonData = {}, ownerData = {} }) => {
     }
   };
 
-  const handleLogoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+//   const handleLogoUpload = async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
 
-    // For now, use base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setCatalogueSettings(prev => ({
-        ...prev,
-        logoUrl: reader.result
-      }));
-      showToast('Logo uploaded successfully', 'success');
-    };
-    reader.readAsDataURL(file);
-  };
+//     // For now, use base64
+//     const reader = new FileReader();
+//     reader.onloadend = () => {
+//       setCatalogueSettings(prev => ({
+//         ...prev,
+//         logoUrl: reader.result
+//       }));
+//       showToast('Logo uploaded successfully', 'success');
+//     };
+//     reader.readAsDataURL(file);
+//   };
 
   if (loading) {
     return (

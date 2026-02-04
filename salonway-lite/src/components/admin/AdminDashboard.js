@@ -9,10 +9,8 @@ import {
   FaPlus,
   FaCog,
   FaSignOutAlt,
-  FaDollarSign,
   FaChevronRight,
   FaStore,
-  FaCheckCircle,
   FaLock 
 } from 'react-icons/fa';
 

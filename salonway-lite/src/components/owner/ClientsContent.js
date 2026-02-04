@@ -7,8 +7,7 @@ import {
   updateDoc, 
   deleteDoc, 
   doc,
-  where,
-  orderBy 
+  where
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 
@@ -28,10 +27,12 @@ const ClientsContent = ({ salonId, salonData }) => {
   const secondaryLight = `${secondaryColor}20`;
   const borderColor = '#dee2e6';
   
-  useEffect(() => {
-    fetchClients();
-  }, [salonId]);
-
+//   useEffect(() => {
+//     fetchClients();
+//   }, [salonId]);
+useEffect(() => {
+  fetchClients();
+}, [fetchClients]);
   const fetchClients = async () => {
     try {
       setLoading(true);

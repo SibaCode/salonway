@@ -35,16 +35,7 @@ const Toast = ({ message, type, onClose }) => {
     }
   };
 
-  const getColor = () => {
-    switch(type) {
-      case 'success': return '#10B981';
-      case 'error': return '#EF4444';
-      case 'warning': return '#F59E0B';
-      case 'info': return '#3B82F6';
-      default: return '#6B7280';
-    }
-  };
-
+ 
   return (
     <div className="toast-notification">
       <span className="toast-icon">{getIcon()}</span>

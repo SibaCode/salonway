@@ -11,33 +11,18 @@ import {
   where, 
   orderBy, updateDoc,serverTimestamp,
   deleteDoc,  // ADD THIS
-  onSnapshot,
   setDoc,
   limit 
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import {
-  FaHome,
   FaUsers,
-  FaCut,
-  FaImage,
-  FaChartBar,
   FaCog,
   FaSignOutAlt,
-  FaBell,
-  FaCheckCircle,
-  FaClock,
-  FaDollarSign,
-  FaPlus,
-  FaUser,
-  FaCalendar,
-  FaMoneyBill,
   FaShoppingBag,
   FaCrown,
   FaChevronRight,
-  FaEnvelope,
-  FaWhatsapp,
-  FaCopy
+
 } from 'react-icons/fa';
 import './css/OwnerDashboard.css';
 import ServicesContent from './ServicesContent';
