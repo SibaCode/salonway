@@ -116,22 +116,16 @@ const [errorState, setErrorState] = useState({  hasError: false,
   details: ''
 });
 
- const handleLogout = useCallback(() => {
+const handleLogout = useCallback(() => {
   console.log('🚪 Logging out...');
   
-  // Clear all auth data
+  // Clear localStorage only (no Firebase Auth)
   localStorage.removeItem('salonOwner');
-  sessionStorage.removeItem('salonOwner');
   
-  // Clear any Firebase auth state if used
-  if (auth) {
-    signOut(auth).catch(console.error);
-  }
-  
-  // Force navigation to login
+  // Navigate to login
   navigate('/owner/login', { replace: true });
   
-  // Force reload to clear any stuck state
+  // Force reload
   setTimeout(() => {
     window.location.reload();
   }, 100);
