@@ -1,6 +1,6 @@
-// src/App.js - Add Owner Routes
+// src/App.js
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerLogin from './components/owner/OwnerLogin';
@@ -14,7 +14,6 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set loading to false after initial render
     setLoading(false);
   }, []);
 
@@ -43,93 +42,78 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="App">
-        <Routes>
-          {/* Public Catalogue Route */}
-          <Route path="/catalogue/:salonId" element={<CataloguePage />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute type="admin">
-                <AdminDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Owner Routes */}
-          <Route path="/owner/login" element={<OwnerLogin />} />
-          <Route path="/owner/login/:salonId" element={<OwnerLogin />} />
-          
-          {/* Protect both dashboard routes */}
-          <Route 
-            path="/owner/dashboard" 
-            element={
-              <ProtectedRoute type="owner">
-                <OwnerDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/owner/dashboard/:salonId" 
-            element={
-              <ProtectedRoute type="owner">
-                <OwnerDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Staff and Client Public Routes */}
-          <Route path="/staff/:code" element={<StaffDashboard />} />
-          <Route path="/client/:salonId" element={<ClientConsultation />} />
-          
-          {/* Root redirect based on localStorage */}
-          <Route 
-            path="/" 
-            element={<RootRedirect />} 
-          />
-          
-          {/* 404 Page */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </div>
-    </Router>
+    <div className="App">
+      <Routes>
+        {/* Public Catalogue Route */}
+        <Route path="/catalogue/:salonId" element={<CataloguePage />} />
+        
+        {/* Admin Routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute type="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Owner Routes */}
+        <Route path="/owner/login" element={<OwnerLogin />} />
+        <Route path="/owner/login/:salonId" element={<OwnerLogin />} />
+        
+        {/* Protect both dashboard routes */}
+        <Route 
+          path="/owner/dashboard" 
+          element={
+            <ProtectedRoute type="owner">
+              <OwnerDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/owner/dashboard/:salonId" 
+          element={
+            <ProtectedRoute type="owner">
+              <OwnerDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Staff and Client Public Routes */}
+        <Route path="/staff/:code" element={<StaffDashboard />} />
+        <Route path="/client/:salonId" element={<ClientConsultation />} />
+        
+        {/* Root redirect based on localStorage */}
+        <Route 
+          path="/" 
+          element={<RootRedirect />} 
+        />
+        
+        {/* 404 Page */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </div>
   );
 }
 
 // Helper component for root redirect
 function RootRedirect() {
-  useEffect(() => {
-    const isAdmin = localStorage.getItem('admin') === 'true';
-    const isOwner = localStorage.getItem('owner') === 'true';
-    const salonId = localStorage.getItem('salonId');
-    
-    if (isAdmin) {
-      window.location.href = '/admin';
-    } else if (isOwner && salonId) {
-      window.location.href = `/owner/dashboard/${salonId}`;
-    } else if (isOwner) {
-      window.location.href = '/owner/dashboard';
-    } else {
-      window.location.href = '/admin/login';
-    }
-  }, []);
-
-  return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center' 
-    }}>
-      <p>Redirecting...</p>
-    </div>
-  );
+  const isAdmin = localStorage.getItem('admin') === 'true';
+  const isOwner = localStorage.getItem('owner') === 'true';
+  const salonId = localStorage.getItem('salonId');
+  
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
+  } else if (isOwner && salonId) {
+    return <Navigate to={`/owner/dashboard/${salonId}`} replace />;
+  } else if (isOwner) {
+    return <Navigate to="/owner/dashboard" replace />;
+  } else {
+    return <Navigate to="/admin/login" replace />;
+  }
 }
 
 // 404 Page Component
