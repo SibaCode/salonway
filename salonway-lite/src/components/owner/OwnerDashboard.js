@@ -12,6 +12,7 @@ import {
   orderBy, updateDoc,serverTimestamp,
   deleteDoc,  // ADD THIS
   onSnapshot,
+  setDoc,
   limit 
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -276,6 +277,8 @@ const DesktopSidebar = () => (
         { id: 'staff', label: 'Staff', icon: '👥' },
         { id: 'services', label: 'Services', icon: '💼' },
         { id: 'clients', label: 'Clients', icon: '👤' },
+        { id: 'catalogue', label: 'Catalogue', icon: '🏢' }
+
         // { id: 'gallery', label: 'Gallery', icon: '🖼️' },
         // { id: 'reports', label: 'Reports', icon: '📊' },
         // { id: 'settings', label: 'Settings', icon: '⚙️' },
@@ -300,7 +303,7 @@ const DesktopSidebar = () => (
 );
 const MoreContent = ({ salonData, ownerData, setActiveTab, handleLogout }) => {
   const moreOptions = [
-    { id: 'gallery', label: 'Gallery', icon: '🖼️', description: 'Manage photos & showcase work' },
+    // { id: 'catalogue', label: 'Catalogue', icon: '🖼️', description: 'Showcase work' },
     { id: 'reports', label: 'Reports & Analytics', icon: '📊', description: 'View business insights' },
     { id: 'settings', label: 'Settings', icon: '⚙️', description: 'Salon settings & preferences' },
     { id: 'subscription', label: 'Subscription', icon: '👑', description: 'Manage your plan' },
@@ -538,10 +541,13 @@ const MoreContent = ({ salonData, ownerData, setActiveTab, handleLogout }) => {
     <ClientsContent salonId={salonData.id} salonData={salonData} />
   )}
   
-  {activeTab === 'gallery' && (
-    <GalleryContent salonId={salonData.id} />
-  )}
-  
+ {activeTab === 'catalogue' && (
+  <CatalogueSettings 
+    salonData={salonData} 
+    ownerData={ownerData}
+    salonId={salonData.id}
+  />
+)}
   {activeTab === 'reports' && (
     <ReportsContent salonId={salonData.id} />
   )}
@@ -1190,11 +1196,18 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
 const ClientsContent = ({ salonId, salonData }) => {
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedConsultation, setSelectedConsultation] = useState(null);
+  const [selectedClient, setSelectedClient] = useState(null);
   const [showAddClient, setShowAddClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all'); // 'form' or 'manual'
+  const [clientType, setClientType] = useState('all');
+  
+  // Colors from salon data
+  const primaryColor = salonData.primaryColor || '#007bff';
+  const secondaryColor = salonData.secondaryColor || '#6c757d';
+  const primaryLight = `${primaryColor}20`; // 20% opacity
+  const secondaryLight = `${secondaryColor}20`; // 20% opacity
+  const borderColor = '#dee2e6';
   
   useEffect(() => {
     fetchConsultations();
@@ -1205,84 +1218,98 @@ const ClientsContent = ({ salonId, salonData }) => {
       setLoading(true);
       const q = query(
         collection(db, 'consultations'),
-        where('salonId', '==', salonId),
-        orderBy('createdAt', 'desc')
+        where('salonId', '==', salonId)
       );
       
       const snapshot = await getDocs(q);
-      const consultationsData = snapshot.docs.map(doc => ({
+      const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       
-      setConsultations(consultationsData);
+      // Sort manually by date (most recent first)
+      data.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB - dateA;
+      });
+      
+      setConsultations(data);
     } catch (error) {
       console.error('Error fetching consultations:', error);
+      showToast('Error loading clients', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  // Add a new walk-in client
   const addNewClient = async (clientData) => {
     try {
-      const newConsultation = {
-        ...clientData,
+      const newClient = {
         salonId,
-        createdAt: new Date(),
-        status: 'new',
-        source: 'manual', // Mark as manually added
-        // Map form fields to match consultation structure
+        salonName: salonData.name || salonData.salonName || 'Salon',
         clientName: clientData.name,
         clientPhone: clientData.phone,
         clientEmail: clientData.email,
-        serviceNeeded: clientData.preferences,
-        additionalInfo: clientData.notes
+        dateOfBirth: clientData.dateOfBirth || '',
+        desiredService: clientData.service || '',
+        specialRequests: clientData.notes || '',
+        allergies: clientData.allergies || '',
+        medicalConditions: clientData.medicalConditions || '',
+        medications: clientData.medications || '',
+        previousReactions: clientData.previousReactions || '',
+        isPregnant: clientData.isPregnant || false,
+        emergencyContact: clientData.emergencyContact || '',
+        previousHistory: clientData.previousHistory || '',
+        photoReference: clientData.photoReference || '',
+        consentData: true,
+        consentPhotos: clientData.consentPhotos || false,
+        consentService: true,
+        status: 'new',
+        source: 'walkin',
+        createdAt: new Date(),
+        date: clientData.visitDate || new Date().toISOString().split('T')[0],
+        submittedAt: new Date().toISOString(),
+        accessCode: Math.random().toString(36).substring(2, 8).toUpperCase()
       };
 
-      const docRef = await addDoc(collection(db, 'consultations'), newConsultation);
-      
-      setConsultations(prev => [{
-        id: docRef.id,
-        ...newConsultation
-      }, ...prev]);
-      
+      const docRef = await addDoc(collection(db, 'consultations'), newClient);
+      setConsultations(prev => [{ id: docRef.id, ...newClient }, ...prev]);
       setShowAddClient(false);
-      alert('Client added successfully!');
+      showToast('Client added successfully!', 'success');
     } catch (error) {
       console.error('Error adding client:', error);
-      alert('Failed to add client');
+      showToast('Failed to add client', 'error');
     }
   };
 
-  const updateConsultationStatus = async (consultationId, newStatus) => {
+  const updateClientStatus = async (clientId, newStatus) => {
     try {
-      await updateDoc(doc(db, 'consultations', consultationId), {
-        status: newStatus,
-        updatedAt: new Date()
-      });
-      
-      setConsultations(prev => prev.map(consult => 
-        consult.id === consultationId ? { ...consult, status: newStatus } : consult
+      await updateDoc(doc(db, 'consultations', clientId), { status: newStatus });
+      setConsultations(prev => prev.map(client => 
+        client.id === clientId ? { ...client, status: newStatus } : client
       ));
-      
-      if (selectedConsultation?.id === consultationId) {
-        setSelectedConsultation(prev => ({ ...prev, status: newStatus }));
+      if (selectedClient?.id === clientId) {
+        setSelectedClient(prev => ({ ...prev, status: newStatus }));
       }
+      showToast('Status updated', 'success');
     } catch (error) {
       console.error('Error updating status:', error);
+      showToast('Error updating status', 'error');
     }
   };
 
-  const deleteConsultation = async (consultationId) => {
-    if (window.confirm('Are you sure you want to delete this client entry?')) {
+  const deleteClient = async (clientId) => {
+    if (window.confirm('Are you sure you want to delete this client?')) {
       try {
-        await deleteDoc(doc(db, 'consultations', consultationId));
-        setConsultations(prev => prev.filter(consult => consult.id !== consultationId));
-        if (selectedConsultation?.id === consultationId) {
-          setSelectedConsultation(null);
-        }
+        await deleteDoc(doc(db, 'consultations', clientId));
+        setConsultations(prev => prev.filter(client => client.id !== clientId));
+        if (selectedClient?.id === clientId) setSelectedClient(null);
+        showToast('Client deleted', 'success');
       } catch (error) {
         console.error('Error deleting client:', error);
+        showToast('Error deleting client', 'error');
       }
     }
   };
@@ -1290,131 +1317,156 @@ const ClientsContent = ({ salonId, salonData }) => {
   const copyFormLink = () => {
     const formLink = `${window.location.origin}/client/${salonData.id}`;
     navigator.clipboard.writeText(formLink);
-    alert('Form link copied! Share this with clients.');
+    showToast('Form link copied to clipboard', 'success');
   };
 
   // Filter consultations
-  const filteredConsultations = consultations.filter(consult => {
+  const filteredClients = consultations.filter(client => {
     const matchesSearch = searchTerm === '' || 
-      consult.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      consult.clientPhone?.includes(searchTerm) ||
-      consult.clientEmail?.toLowerCase().includes(searchTerm.toLowerCase());
+      client.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.clientPhone?.includes(searchTerm) ||
+      client.clientEmail?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || consult.status === statusFilter;
-    
-    const matchesType = typeFilter === 'all' || 
-      (typeFilter === 'form' && consult.source !== 'manual') ||
-      (typeFilter === 'manual' && consult.source === 'manual');
+    const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
+    const matchesType = clientType === 'all' || 
+      (clientType === 'form' && client.source === 'online_form') ||
+      (clientType === 'walkin' && client.source === 'walkin');
     
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  // Get unique client count (by phone or email)
-  const uniqueClientsCount = new Set(
-    consultations
-      .filter(c => c.clientPhone || c.clientEmail)
-      .map(c => c.clientPhone || c.clientEmail)
-  ).size;
+  // Calculate stats
+  const totalEntries = consultations.length;
+  const formSubmissions = consultations.filter(c => c.source === 'online_form').length;
+  const walkinClients = consultations.filter(c => c.source === 'walkin').length;
+  const newClients = consultations.filter(c => c.status === 'new').length;
+
+  // Helper function for toast notifications
+  const showToast = (message, type = 'info') => {
+    // This would use your toast system
+    console.log(`${type.toUpperCase()}: ${message}`);
+    // Example: toast.success(message) or toast.error(message)
+  };
+
+  // Check if mobile
+  const isMobile = window.innerWidth < 768;
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '24px',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '600', margin: '0 0 4px 0' }}>
-            Client Management
-          </h2>
-          <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
-            Manage client forms and information
-          </p>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button 
-            onClick={copyFormLink}
-            style={{
-              padding: '10px 20px',
-              background: 'var(--primary-color, #007bff)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            📝 Share Form
-          </button>
-          
-          <button 
-            onClick={() => setShowAddClient(true)}
-            style={{
-              padding: '10px 20px',
-              background: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            ➕ Add Client
-          </button>
-        </div>
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ 
+          fontSize: isMobile ? '20px' : '24px', 
+          fontWeight: '600', 
+          margin: '0 0 4px 0',
+          color: '#212529'
+        }}>
+          Client Management
+        </h2>
+        <p style={{ color: secondaryColor, fontSize: '14px', margin: 0 }}>
+          Manage all clients and consultations
+        </p>
       </div>
 
-      {/* Stats Overview */}
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <button 
+          onClick={copyFormLink}
+          style={{
+            padding: isMobile ? '12px 16px' : '12px 24px',
+            background: primaryColor,
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <span>📝</span>
+          Copy Form Link
+        </button>
+        
+        <button 
+          onClick={() => setShowAddClient(true)}
+          style={{
+            padding: isMobile ? '12px 16px' : '12px 24px',
+            background: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <span>➕</span>
+          Add Walk-in Client
+        </button>
+      </div>
+
+      {/* Stats Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
         gap: '16px',
         marginBottom: '24px'
       }}>
         <div style={{
           background: 'white',
-          padding: '20px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          padding: '16px',
+          borderRadius: '8px',
+          border: `1px solid ${borderColor}`,
+          textAlign: 'center'
         }}>
-          <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#6c757d' }}>Total Entries</p>
-          <h3 style={{ margin: 0, fontSize: '28px', fontWeight: '600' }}>{consultations.length}</h3>
-        </div>
-        
-        <div style={{
-          background: 'white',
-          padding: '20px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#6c757d' }}>Unique Clients</p>
-          <h3 style={{ margin: 0, fontSize: '28px', fontWeight: '600', color: '#28a745' }}>
-            {uniqueClientsCount}
+          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: secondaryColor }}>Total Clients</p>
+          <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: primaryColor }}>
+            {totalEntries}
           </h3>
         </div>
         
         <div style={{
           background: 'white',
-          padding: '20px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          padding: '16px',
+          borderRadius: '8px',
+          border: `1px solid ${borderColor}`,
+          textAlign: 'center'
         }}>
-          <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#6c757d' }}>New (Unreviewed)</p>
-          <h3 style={{ margin: 0, fontSize: '28px', fontWeight: '600', color: '#fd7e14' }}>
-            {consultations.filter(c => c.status === 'new').length}
+          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: secondaryColor }}>Form Submissions</p>
+          <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: primaryColor }}>
+            {formSubmissions}
+          </h3>
+        </div>
+        
+        <div style={{
+          background: 'white',
+          padding: '16px',
+          borderRadius: '8px',
+          border: `1px solid ${borderColor}`,
+          textAlign: 'center'
+        }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: secondaryColor }}>Walk-in Clients</p>
+          <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#28a745' }}>
+            {walkinClients}
+          </h3>
+        </div>
+        
+        <div style={{
+          background: 'white',
+          padding: '16px',
+          borderRadius: '8px',
+          border: `1px solid ${borderColor}`,
+          textAlign: 'center'
+        }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: secondaryColor }}>New</p>
+          <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#ffc107' }}>
+            {newClients}
           </h3>
         </div>
       </div>
@@ -1422,25 +1474,23 @@ const ClientsContent = ({ salonId, salonData }) => {
       {/* Search and Filter */}
       <div style={{
         display: 'flex',
-        gap: '16px',
+        gap: '12px',
         marginBottom: '24px',
-        flexWrap: 'wrap',
-        background: '#f8f9fa',
-        padding: '16px',
-        borderRadius: '8px'
+        flexDirection: isMobile ? 'column' : 'row'
       }}>
-        <div style={{ flex: 1, minWidth: '250px' }}>
+        <div style={{ flex: 1 }}>
           <input
             type="text"
-            placeholder="Search by name, phone, or email..."
+            placeholder="Search clients..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
               width: '100%',
-              padding: '10px 16px',
-              border: '1px solid #dee2e6',
+              padding: '12px 16px',
+              border: `1px solid ${borderColor}`,
               borderRadius: '8px',
-              fontSize: '14px'
+              fontSize: '14px',
+              background: 'white'
             }}
           />
         </div>
@@ -1449,12 +1499,12 @@ const ClientsContent = ({ salonId, salonData }) => {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           style={{
-            padding: '10px 16px',
-            border: '1px solid #dee2e6',
+            padding: '12px 16px',
+            border: `1px solid ${borderColor}`,
             borderRadius: '8px',
             fontSize: '14px',
             background: 'white',
-            minWidth: '120px'
+            minWidth: isMobile ? '100%' : '150px'
           }}
         >
           <option value="all">All Status</option>
@@ -1462,259 +1512,370 @@ const ClientsContent = ({ salonId, salonData }) => {
           <option value="reviewed">Reviewed</option>
           <option value="contacted">Contacted</option>
           <option value="scheduled">Scheduled</option>
+          <option value="completed">Completed</option>
         </select>
         
         <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
+          value={clientType}
+          onChange={(e) => setClientType(e.target.value)}
           style={{
-            padding: '10px 16px',
-            border: '1px solid #dee2e6',
+            padding: '12px 16px',
+            border: `1px solid ${borderColor}`,
             borderRadius: '8px',
             fontSize: '14px',
             background: 'white',
-            minWidth: '120px'
+            minWidth: isMobile ? '100%' : '150px'
           }}
         >
-          <option value="all">All Types</option>
+          <option value="all">All Clients</option>
           <option value="form">Form Submissions</option>
-          <option value="manual">Manual Entries</option>
+          <option value="walkin">Walk-in Clients</option>
         </select>
       </div>
 
-      {/* Consultations List */}
+      {/* Clients List */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px' }}>
-          <p>Loading client data...</p>
+          <p style={{ color: secondaryColor }}>Loading clients...</p>
         </div>
-      ) : filteredConsultations.length === 0 ? (
+      ) : filteredClients.length === 0 ? (
         <div style={{
           textAlign: 'center',
-          padding: '60px 20px',
-          background: '#f8f9fa',
-          borderRadius: '12px',
-          border: '2px dashed #dee2e6'
+          padding: '40px 20px',
+          background: secondaryLight,
+          borderRadius: '8px',
+          border: `1px dashed ${borderColor}`
         }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            background: '#e9ecef',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            margin: '0 auto 20px',
-            color: '#6c757d'
-          }}>
-            📝
+          <div style={{ fontSize: '48px', color: secondaryColor, marginBottom: '16px' }}>
+            👥
           </div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#6c757d' }}>
-            {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' ? 'No matching entries' : 'No Client Entries Yet'}
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: secondaryColor }}>
+            No clients found
           </h3>
-          <p style={{ color: '#adb5bd', fontSize: '14px', margin: '0 0 20px 0' }}>
-            {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' 
-              ? 'Try adjusting your search or filters' 
-              : 'Add clients manually or share the form with clients'}
+          <p style={{ color: secondaryColor, fontSize: '14px', margin: 0 }}>
+            {searchTerm || statusFilter !== 'all' || clientType !== 'all' 
+              ? 'Try adjusting your search' 
+              : 'Add your first client or share the form'}
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button 
-              onClick={() => setShowAddClient(true)}
-              style={{
-                padding: '10px 20px',
-                background: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}
-            >
-              ➕ Add First Client
-            </button>
-            <button 
-              onClick={copyFormLink}
-              style={{
-                padding: '10px 20px',
-                background: 'var(--primary-color, #007bff)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}
-            >
-              📝 Get Form Link
-            </button>
-          </div>
         </div>
       ) : (
         <div style={{ 
-          background: 'white', 
-          borderRadius: '12px',
-          overflow: 'hidden',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '12px'
         }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1.5fr 1fr 120px 100px 80px',
-            padding: '16px',
-            background: '#f8f9fa',
-            borderBottom: '1px solid #dee2e6',
-            fontWeight: '600',
-            fontSize: '14px',
-            color: '#495057'
-          }}>
-            <div>Client Information</div>
-            <div>Service & Date</div>
-            <div>Status</div>
-            <div>Type</div>
-            <div>Actions</div>
-          </div>
-          
-          <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-            {filteredConsultations.map(consult => (
-              <div 
-                key={consult.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1.5fr 1fr 120px 100px 80px',
-                  padding: '16px',
-                  borderBottom: '1px solid #f8f9fa',
-                  alignItems: 'center',
-                  ':hover': {
-                    background: '#f8f9fa'
-                  }
-                }}
-              >
-                {/* Client Information */}
+          {filteredClients.map(client => (
+            <div 
+              key={client.id}
+              onClick={() => setSelectedClient(client)}
+              style={{
+                background: 'white',
+                borderRadius: '8px',
+                padding: '16px',
+                border: `1px solid ${borderColor}`,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.borderColor = primaryColor}
+              onMouseOut={(e) => e.currentTarget.style.borderColor = borderColor}
+            >
+              {isMobile ? (
+                // Mobile layout
                 <div>
-                  <div style={{ fontWeight: '600', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {consult.clientName || 'Unknown Client'}
-                    {consult.source === 'manual' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <div>
+                      <h3 style={{ 
+                        margin: '0 0 4px 0', 
+                        fontSize: '16px', 
+                        fontWeight: '600',
+                        color: '#212529'
+                      }}>
+                        {client.clientName || 'Unknown Client'}
+                      </h3>
+                      <div style={{ fontSize: '14px', color: secondaryColor }}>
+                        📞 {client.clientPhone || 'No phone'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: secondaryColor,
+                        marginBottom: '4px'
+                      }}>
+                        {client.date || client.createdAt?.toDate?.().toLocaleDateString() || 'Recent'}
+                      </div>
                       <span style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        background: '#e9ecef',
-                        color: '#6c757d',
+                        fontSize: '11px',
+                        padding: '4px 8px',
+                        background: client.status === 'new' ? '#fff3cd' :
+                                   client.status === 'reviewed' ? '#d1ecf1' :
+                                   client.status === 'scheduled' ? '#d4edda' :
+                                   '#e2e3e5',
+                        color: client.status === 'new' ? '#856404' :
+                               client.status === 'reviewed' ? '#0c5460' :
+                               client.status === 'scheduled' ? '#155724' :
+                               '#383d41',
+                        borderRadius: '4px',
+                        fontWeight: '500'
+                      }}>
+                        {client.status || 'New'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <span style={{
+                        fontSize: '12px',
+                        padding: '4px 8px',
+                        background: client.source === 'walkin' ? secondaryLight : primaryLight,
+                        color: client.source === 'walkin' ? secondaryColor : primaryColor,
                         borderRadius: '4px'
                       }}>
-                        Manual
+                        {client.source === 'walkin' ? 'Walk-in' : 'Form'}
                       </span>
-                    )}
+                      {client.desiredService && (
+                        <span style={{
+                          marginLeft: '8px',
+                          fontSize: '13px',
+                          color: secondaryColor
+                        }}>
+                          • {client.desiredService}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedClient(client);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        background: primaryColor,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      View
+                    </button>
                   </div>
-                  <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>
-                    📞 {consult.clientPhone || 'No phone'} 
-                    {consult.clientEmail && ` • ✉️ ${consult.clientEmail}`}
+                </div>
+              ) : (
+                // Desktop layout
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ flex: 2 }}>
+                    <h3 style={{ 
+                      margin: '0 0 4px 0', 
+                      fontSize: '16px', 
+                      fontWeight: '600',
+                      color: '#212529'
+                    }}>
+                      {client.clientName || 'Unknown Client'}
+                    </h3>
+                    <div style={{ fontSize: '14px', color: secondaryColor }}>
+                      📞 {client.clientPhone || 'No phone'} • ✉️ {client.clientEmail || 'No email'}
+                    </div>
+                  </div>
+                  
+                  <div style={{ flex: 1, fontSize: '14px', color: secondaryColor }}>
+                    {client.desiredService || 'General Service'}
+                  </div>
+                  
+                  <div style={{ flex: 0.5, textAlign: 'center' }}>
+                    <span style={{
+                      fontSize: '12px',
+                      padding: '4px 8px',
+                      background: client.source === 'walkin' ? secondaryLight : primaryLight,
+                      color: client.source === 'walkin' ? secondaryColor : primaryColor,
+                      borderRadius: '4px'
+                    }}>
+                      {client.source === 'walkin' ? 'Walk-in' : 'Form'}
+                    </span>
+                  </div>
+                  
+                  <div style={{ flex: 0.5, textAlign: 'center' }}>
+                    <select
+                      value={client.status || 'new'}
+                      onChange={(e) => updateClientStatus(client.id, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        padding: '6px 8px',
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        background: 'white',
+                        width: '100%',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="new">New</option>
+                      <option value="reviewed">Reviewed</option>
+                      <option value="contacted">Contacted</option>
+                      <option value="scheduled">Scheduled</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </div>
+                  
+                  <div style={{ flex: 0.3, textAlign: 'right' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedClient(client);
+                      }}
+                      style={{
+                        padding: '8px 16px',
+                        background: primaryColor,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      View
+                    </button>
                   </div>
                 </div>
-                
-                {/* Service & Date */}
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '500' }}>
-                    {consult.serviceNeeded || 'General Consultation'}
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>
-                    {consult.createdAt?.toDate?.().toLocaleDateString() || 'Recent'}
-                  </div>
-                </div>
-                
-                {/* Status */}
-                <div>
-                  <select
-                    value={consult.status || 'new'}
-                    onChange={(e) => updateConsultationStatus(consult.id, e.target.value)}
-                    style={{
-                      padding: '6px 10px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      background: 'white',
-                      width: '100%',
-                      color: consult.status === 'new' ? '#dc3545' : 
-                             consult.status === 'reviewed' ? '#fd7e14' :
-                             consult.status === 'contacted' ? '#17a2b8' :
-                             consult.status === 'scheduled' ? '#28a745' : '#6c757d'
-                    }}
-                  >
-                    <option value="new" style={{ color: '#dc3545' }}>New</option>
-                    <option value="reviewed" style={{ color: '#fd7e14' }}>Reviewed</option>
-                    <option value="contacted" style={{ color: '#17a2b8' }}>Contacted</option>
-                    <option value="scheduled" style={{ color: '#28a745' }}>Scheduled</option>
-                  </select>
-                </div>
-                
-                {/* Type */}
-                <div>
-                  <span style={{
-                    fontSize: '12px',
-                    padding: '4px 8px',
-                    background: consult.source === 'manual' ? '#e9ecef' : '#d1fae5',
-                    color: consult.source === 'manual' ? '#6c757d' : '#065f46',
-                    borderRadius: '12px',
-                    fontWeight: '500'
-                  }}>
-                    {consult.source === 'manual' ? 'Manual' : 'Form'}
-                  </span>
-                </div>
-                
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => setSelectedConsultation(consult)}
-                    style={{
-                      padding: '6px 12px',
-                      background: '#007bff',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    View
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Add Client Modal */}
-      {showAddClient && (
-        <Modal onClose={() => setShowAddClient(false)}>
-          <AddClientForm 
-            onSubmit={addNewClient}
-            onCancel={() => setShowAddClient(false)}
-          />
-        </Modal>
-      )}
+      {/* Modals */}
+      <>
+        {/* Add Client Modal */}
+        {showAddClient && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '8px',
+              padding: '24px',
+              maxWidth: '500px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              position: 'relative'
+            }}>
+              <button 
+                onClick={() => setShowAddClient(false)}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: secondaryColor
+                }}
+              >
+                ✕
+              </button>
+              
+              <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600', color: '#212529' }}>
+                Add Walk-in Client
+              </h3>
+              
+              <AddClientForm 
+                onSubmit={addNewClient}
+                onCancel={() => setShowAddClient(false)}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                borderColor={borderColor}
+              />
+            </div>
+          </div>
+        )}
 
-      {/* View Consultation/Client Details Modal */}
-      {selectedConsultation && (
-        <Modal onClose={() => setSelectedConsultation(null)}>
-          <ConsultationDetails 
-            consultation={selectedConsultation}
-            onDelete={deleteConsultation}
-            onClose={() => setSelectedConsultation(null)}
-            onUpdateStatus={updateConsultationStatus}
-          />
-        </Modal>
-      )}
+        {/* Client Details Modal */}
+        {selectedClient && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '8px',
+              padding: '24px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              position: 'relative'
+            }}>
+              <button 
+                onClick={() => setSelectedClient(null)}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: secondaryColor
+                }}
+              >
+                ✕
+              </button>
+              
+              <ClientDetails 
+                client={selectedClient}
+                onDelete={deleteClient}
+                onClose={() => setSelectedClient(null)}
+                onUpdateStatus={updateClientStatus}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                borderColor={borderColor}
+                isMobile={isMobile}
+              />
+            </div>
+          </div>
+        )}
+      </>
     </div>
   );
 };
 
-// Add Client Form Component (adds to consultations)
-const AddClientForm = ({ onSubmit, onCancel }) => {
+// Add Client Form Component
+const AddClientForm = ({ onSubmit, onCancel, primaryColor, secondaryColor, borderColor }) => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     email: '',
-    preferences: '',
+    service: '',
+    visitDate: new Date().toISOString().split('T')[0],
     notes: ''
   });
 
@@ -1725,13 +1886,9 @@ const AddClientForm = ({ onSubmit, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit}>
-      <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600' }}>
-        Add New Client
-      </h3>
-      
       <div style={{ display: 'grid', gap: '16px' }}>
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#212529' }}>
             Full Name *
           </label>
           <input
@@ -1741,16 +1898,16 @@ const AddClientForm = ({ onSubmit, onCancel }) => {
             onChange={(e) => setFormData({...formData, name: e.target.value})}
             style={{
               width: '100%',
-              padding: '10px',
-              border: '1px solid #dee2e6',
-              borderRadius: '8px',
+              padding: '12px',
+              border: `1px solid ${borderColor}`,
+              borderRadius: '6px',
               fontSize: '14px'
             }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#212529' }}>
             Phone Number *
           </label>
           <input
@@ -1760,16 +1917,16 @@ const AddClientForm = ({ onSubmit, onCancel }) => {
             onChange={(e) => setFormData({...formData, phone: e.target.value})}
             style={{
               width: '100%',
-              padding: '10px',
-              border: '1px solid #dee2e6',
-              borderRadius: '8px',
+              padding: '12px',
+              border: `1px solid ${borderColor}`,
+              borderRadius: '6px',
               fontSize: '14px'
             }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#212529' }}>
             Email Address
           </label>
           <input
@@ -1778,35 +1935,54 @@ const AddClientForm = ({ onSubmit, onCancel }) => {
             onChange={(e) => setFormData({...formData, email: e.target.value})}
             style={{
               width: '100%',
-              padding: '10px',
-              border: '1px solid #dee2e6',
-              borderRadius: '8px',
+              padding: '12px',
+              border: `1px solid ${borderColor}`,
+              borderRadius: '6px',
               fontSize: '14px'
             }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-            Service Interest / Preferences
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#212529' }}>
+            Service
           </label>
           <input
             type="text"
-            value={formData.preferences}
-            onChange={(e) => setFormData({...formData, preferences: e.target.value})}
+            value={formData.service}
+            onChange={(e) => setFormData({...formData, service: e.target.value})}
+            placeholder="Optional"
             style={{
               width: '100%',
-              padding: '10px',
-              border: '1px solid #dee2e6',
-              borderRadius: '8px',
+              padding: '12px',
+              border: `1px solid ${borderColor}`,
+              borderRadius: '6px',
               fontSize: '14px'
             }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-            Notes / Additional Information
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#212529' }}>
+            Visit Date
+          </label>
+          <input
+            type="date"
+            value={formData.visitDate}
+            onChange={(e) => setFormData({...formData, visitDate: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: `1px solid ${borderColor}`,
+              borderRadius: '6px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#212529' }}>
+            Notes
           </label>
           <textarea
             value={formData.notes}
@@ -1814,9 +1990,9 @@ const AddClientForm = ({ onSubmit, onCancel }) => {
             rows="3"
             style={{
               width: '100%',
-              padding: '10px',
-              border: '1px solid #dee2e6',
-              borderRadius: '8px',
+              padding: '12px',
+              border: `1px solid ${borderColor}`,
+              borderRadius: '6px',
               fontSize: '14px',
               resize: 'vertical'
             }}
@@ -1828,11 +2004,11 @@ const AddClientForm = ({ onSubmit, onCancel }) => {
             type="button"
             onClick={onCancel}
             style={{
-              padding: '10px 20px',
-              background: '#e9ecef',
-              color: '#495057',
+              padding: '12px 24px',
+              background: secondaryColor,
+              color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               fontSize: '14px',
               fontWeight: '500',
               cursor: 'pointer'
@@ -1843,11 +2019,11 @@ const AddClientForm = ({ onSubmit, onCancel }) => {
           <button
             type="submit"
             style={{
-              padding: '10px 20px',
-              background: '#28a745',
+              padding: '12px 24px',
+              background: primaryColor,
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               fontSize: '14px',
               fontWeight: '500',
               cursor: 'pointer'
@@ -1860,6 +2036,652 @@ const AddClientForm = ({ onSubmit, onCancel }) => {
     </form>
   );
 };
+
+// Client Details Component
+const ClientDetails = ({ client, onDelete, onClose, onUpdateStatus, primaryColor, secondaryColor, borderColor, isMobile }) => {
+  const isFormSubmission = client.source === 'online_form';
+
+  return (
+    <div>
+      <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600', color: '#212529' }}>
+        Client Details
+      </h3>
+      
+      <div style={{ display: 'grid', gap: '20px' }}>
+        {/* Header Info */}
+        <div style={{ 
+          background: `${primaryColor}10`,
+          padding: '20px',
+          borderRadius: '8px',
+          borderLeft: `4px solid ${primaryColor}`
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#212529' }}>
+                {client.clientName || 'Unknown Client'}
+              </h4>
+              <div style={{ display: 'flex', gap: '12px', fontSize: '14px', color: secondaryColor }}>
+                <span>📞 {client.clientPhone || 'No phone'}</span>
+                {client.clientEmail && <span>✉️ {client.clientEmail}</span>}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{
+                fontSize: '12px',
+                padding: '4px 8px',
+                background: isFormSubmission ? `${primaryColor}20` : `${secondaryColor}20`,
+                color: isFormSubmission ? primaryColor : secondaryColor,
+                borderRadius: '4px',
+                fontWeight: '500'
+              }}>
+                {isFormSubmission ? 'Form Submission' : 'Walk-in Client'}
+              </span>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '14px', color: secondaryColor }}>
+              {client.date || client.createdAt?.toDate?.().toLocaleDateString() || 'Recent'}
+            </div>
+            <select
+              value={client.status || 'new'}
+              onChange={(e) => onUpdateStatus(client.id, e.target.value)}
+              style={{
+                padding: '8px 12px',
+                border: `1px solid ${borderColor}`,
+                borderRadius: '6px',
+                fontSize: '14px',
+                background: 'white',
+                minWidth: '120px'
+              }}
+            >
+              <option value="new">New</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="contacted">Contacted</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Service Information */}
+        <div>
+          <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#212529' }}>Service Information</h4>
+          <div style={{ 
+            background: `${secondaryColor}08`,
+            padding: '16px',
+            borderRadius: '6px',
+            border: `1px solid ${borderColor}`
+          }}>
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', color: secondaryColor, marginBottom: '4px' }}>Desired Service</div>
+              <div style={{ fontSize: '15px', color: '#212529' }}>{client.desiredService || 'Not specified'}</div>
+            </div>
+            
+            {client.specialRequests && client.specialRequests !== 'n' && (
+              <div>
+                <div style={{ fontSize: '12px', color: secondaryColor, marginBottom: '4px' }}>Special Requests</div>
+                <div style={{ fontSize: '15px', color: '#212529' }}>{client.specialRequests}</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Medical Information (if available) */}
+        {(client.allergies || client.medicalConditions || client.medications) && (
+          <div>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#212529' }}>Medical Information</h4>
+            <div style={{ 
+              background: `${secondaryColor}08`,
+              padding: '16px',
+              borderRadius: '6px',
+              border: `1px solid ${borderColor}`
+            }}>
+              {client.allergies && client.allergies !== 'b' && client.allergies !== 'n' && (
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '12px', color: secondaryColor, marginBottom: '4px' }}>Allergies</div>
+                  <div style={{ fontSize: '15px', color: '#212529' }}>{client.allergies}</div>
+                </div>
+              )}
+              
+              {client.medicalConditions && client.medicalConditions !== 'b' && client.medicalConditions !== 'n' && (
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '12px', color: secondaryColor, marginBottom: '4px' }}>Medical Conditions</div>
+                  <div style={{ fontSize: '15px', color: '#212529' }}>{client.medicalConditions}</div>
+                </div>
+              )}
+              
+              {client.medications && client.medications !== 'b' && client.medications !== 'n' && (
+                <div>
+                  <div style={{ fontSize: '12px', color: secondaryColor, marginBottom: '4px' }}>Medications</div>
+                  <div style={{ fontSize: '15px', color: '#212529' }}>{client.medications}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Consents */}
+        <div>
+          <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#212529' }}>Consents</h4>
+          <div style={{ 
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+            gap: '12px'
+          }}>
+            <div style={{ 
+              padding: '12px',
+              background: client.consentData ? `${primaryColor}10` : `${secondaryColor}10`,
+              borderRadius: '6px',
+              border: `1px solid ${client.consentData ? primaryColor : borderColor}`,
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '14px', color: secondaryColor, marginBottom: '4px' }}>Data Consent</div>
+              <div style={{ 
+                fontSize: '13px', 
+                color: client.consentData ? primaryColor : secondaryColor,
+                fontWeight: '500'
+              }}>
+                {client.consentData ? '✓ Given' : '✗ Not Given'}
+              </div>
+            </div>
+            
+            <div style={{ 
+              padding: '12px',
+              background: client.consentPhotos ? `${primaryColor}10` : `${secondaryColor}10`,
+              borderRadius: '6px',
+              border: `1px solid ${client.consentPhotos ? primaryColor : borderColor}`,
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '14px', color: secondaryColor, marginBottom: '4px' }}>Photo Consent</div>
+              <div style={{ 
+                fontSize: '13px', 
+                color: client.consentPhotos ? primaryColor : secondaryColor,
+                fontWeight: '500'
+              }}>
+                {client.consentPhotos ? '✓ Given' : '✗ Not Given'}
+              </div>
+            </div>
+            
+            <div style={{ 
+              padding: '12px',
+              background: client.consentService ? `${primaryColor}10` : `${secondaryColor}10`,
+              borderRadius: '6px',
+              border: `1px solid ${client.consentService ? primaryColor : borderColor}`,
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '14px', color: secondaryColor, marginBottom: '4px' }}>Service Consent</div>
+              <div style={{ 
+                fontSize: '13px', 
+                color: client.consentService ? primaryColor : secondaryColor,
+                fontWeight: '500'
+              }}>
+                {client.consentService ? '✓ Given' : '✗ Not Given'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px',
+          justifyContent: 'flex-end',
+          marginTop: '8px'
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '12px 24px',
+              background: secondaryColor,
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Close
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm('Are you sure you want to delete this client?')) {
+                onDelete(client.id);
+              }
+            }}
+            style={{
+              padding: '12px 24px',
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Updated Modal Component with better styling
+const Modal = ({ children, onClose, title }) => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.7)',
+    backdropFilter: 'blur(4px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: window.innerWidth < 768 ? '16px' : '20px'
+  }}>
+    <div style={{
+      background: 'white',
+      borderRadius: window.innerWidth < 768 ? '20px' : '24px',
+      padding: 0,
+      width: '100%',
+      maxWidth: window.innerWidth < 768 ? '100%' : '700px',
+      maxHeight: '90vh',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+      animation: 'modalSlideIn 0.3s ease-out'
+    }}>
+      {/* Modal Header */}
+      <div style={{
+        padding: window.innerWidth < 768 ? '20px 20px 16px' : '24px 24px 20px',
+        borderBottom: '1px solid #f0f0f0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white'
+      }}>
+        <h2 style={{ 
+          margin: 0, 
+          fontSize: window.innerWidth < 768 ? '18px' : '20px', 
+          fontWeight: '700'
+        }}>
+          {title}
+        </h2>
+        <button 
+          onClick={onClose}
+          style={{
+            background: 'rgba(255, 255, 255, 0.2)',
+            border: 'none',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
+            fontSize: '20px',
+            cursor: 'pointer',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+          onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+        >
+          ✕
+        </button>
+      </div>
+      
+      {/* Modal Content */}
+      <div style={{ 
+        flex: 1, 
+        overflowY: 'auto',
+        padding: window.innerWidth < 768 ? '20px' : '24px'
+      }}>
+        {children}
+      </div>
+      
+      <style>{`
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
+    </div>
+  </div>
+);
+
+// Add Walkin Client Form - Simplified for mobile
+const AddWalkinClientForm = ({ onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    service: '',
+    visitDate: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
+
+  const [activeTab, setActiveTab] = useState('basic');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.phone) {
+      alert('Please fill in at least name and phone number');
+      return;
+    }
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Tab Navigation */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        borderBottom: '1px solid #f0f0f0',
+        paddingBottom: '12px'
+      }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('basic')}
+          style={{
+            flex: 1,
+            padding: '12px',
+            background: activeTab === 'basic' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#f8f9fa',
+            color: activeTab === 'basic' ? 'white' : '#666',
+            border: 'none',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          Basic Info
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('service')}
+          style={{
+            flex: 1,
+            padding: '12px',
+            background: activeTab === 'service' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#f8f9fa',
+            color: activeTab === 'service' ? 'white' : '#666',
+            border: 'none',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          Service Details
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gap: '20px' }}>
+        {/* Basic Information Tab */}
+        {activeTab === 'basic' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '600',
+                color: '#333'
+              }}>
+                Full Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                placeholder="Enter client's full name"
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid #f0f0f0',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  background: '#fafafa',
+                  transition: 'all 0.2s ease'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#f0f0f0'}
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '600',
+                color: '#333'
+              }}>
+                Phone Number *
+              </label>
+              <input
+                type="tel"
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                placeholder="Enter phone number"
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid #f0f0f0',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  background: '#fafafa',
+                  transition: 'all 0.2s ease'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#f0f0f0'}
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '600',
+                color: '#333'
+              }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                placeholder="Enter email address (optional)"
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid #f0f0f0',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  background: '#fafafa',
+                  transition: 'all 0.2s ease'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#f0f0f0'}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Service Details Tab */}
+        {activeTab === 'service' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '600',
+                color: '#333'
+              }}>
+                Service Received/Requested
+              </label>
+              <input
+                type="text"
+                value={formData.service}
+                onChange={(e) => setFormData({...formData, service: e.target.value})}
+                placeholder="e.g., Haircut, Coloring, Treatment"
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid #f0f0f0',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  background: '#fafafa',
+                  transition: 'all 0.2s ease'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#f0f0f0'}
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '600',
+                color: '#333'
+              }}>
+                Visit Date
+              </label>
+              <input
+                type="date"
+                value={formData.visitDate}
+                onChange={(e) => setFormData({...formData, visitDate: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid #f0f0f0',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  background: '#fafafa',
+                  transition: 'all 0.2s ease'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#f0f0f0'}
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '600',
+                color: '#333'
+              }}>
+                Notes / Special Requests
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                rows="4"
+                placeholder="Any special requests or additional notes..."
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid #f0f0f0',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  background: '#fafafa',
+                  resize: 'vertical',
+                  transition: 'all 0.2s ease',
+                  minHeight: '100px'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#f0f0f0'}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          marginTop: '20px',
+          paddingTop: '20px',
+          borderTop: '1px solid #f0f0f0'
+        }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              flex: 1,
+              padding: '16px',
+              background: '#f8f9fa',
+              color: '#666',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = '#e9ecef'}
+            onMouseOut={(e) => e.currentTarget.style.background = '#f8f9fa'}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            style={{
+              flex: 1,
+              padding: '16px',
+              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            Add Client
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </form>
+  );
+};
+
+
 
 // Consultation Details Component
 const ConsultationDetails = ({ consultation, onDelete, onClose, onUpdateStatus }) => {
@@ -2037,50 +2859,7 @@ const ConsultationDetails = ({ consultation, onDelete, onClose, onUpdateStatus }
   );
 };
 
-// Modal Component (reuse from previous)
-const Modal = ({ children, onClose }) => (
-  <div style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    padding: '20px'
-  }}>
-    <div style={{
-      background: 'white',
-      borderRadius: '12px',
-      padding: '24px',
-      maxWidth: '600px',
-      width: '100%',
-      maxHeight: '90vh',
-      overflow: 'auto',
-      position: 'relative'
-    }}>
-      <button 
-        onClick={onClose}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          right: '16px',
-          background: 'none',
-          border: 'none',
-          fontSize: '20px',
-          cursor: 'pointer',
-          color: '#6c757d'
-        }}
-      >
-        ✕
-      </button>
-      {children}
-    </div>
-  </div>
-);
+
 
 
 // Edit Client Form (simplified)
@@ -2275,141 +3054,6 @@ const EditClientForm = ({ client, onSubmit, onCancel }) => {
         </div>
       </div>
     </form>
-  );
-};
-
-// Client Details View Component (simplified)
-const ClientDetails = ({ client, onDelete, onClose, onEdit }) => {
-  return (
-    <div>
-      <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600' }}>
-        Client Details
-      </h3>
-      
-      <div style={{ display: 'grid', gap: '16px' }}>
-        <div style={{ 
-          background: '#f8f9fa', 
-          padding: '20px', 
-          borderRadius: '8px'
-        }}>
-          <div style={{ marginBottom: '16px' }}>
-            <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Name</strong>
-            <p style={{ margin: 0, fontSize: '16px', fontWeight: '500' }}>{client.name}</p>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <div>
-              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Phone</strong>
-              <p style={{ margin: 0 }}>{client.phone || 'Not provided'}</p>
-            </div>
-            <div>
-              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Email</strong>
-              <p style={{ margin: 0 }}>{client.email || 'Not provided'}</p>
-            </div>
-          </div>
-          
-          {client.address && (
-            <div style={{ marginBottom: '16px' }}>
-              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Address</strong>
-              <p style={{ margin: 0 }}>{client.address}</p>
-            </div>
-          )}
-          
-          {client.preferences && (
-            <div style={{ marginBottom: '16px' }}>
-              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Preferences</strong>
-              <p style={{ margin: 0 }}>{client.preferences}</p>
-            </div>
-          )}
-          
-          <div style={{ marginBottom: '16px' }}>
-            <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Status</strong>
-            <span style={{
-              padding: '4px 12px',
-              background: client.status === 'active' ? '#d1fae5' : 
-                         client.status === 'vip' ? '#fef3c7' :
-                         client.status === 'inactive' ? '#fee2e2' : '#e9ecef',
-              color: client.status === 'active' ? '#065f46' : 
-                     client.status === 'vip' ? '#92400e' :
-                     client.status === 'inactive' ? '#dc2626' : '#495057',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: '500'
-            }}>
-              {client.status?.toUpperCase() || 'ACTIVE'}
-            </span>
-          </div>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Member Since</strong>
-            <p style={{ margin: 0 }}>
-              {client.createdAt?.toDate?.().toLocaleDateString() || 'Unknown'}
-            </p>
-          </div>
-          
-          {client.notes && (
-            <div>
-              <strong style={{ display: 'block', marginBottom: '4px', color: '#6c757d' }}>Notes</strong>
-              <p style={{ margin: 0 }}>{client.notes}</p>
-            </div>
-          )}
-        </div>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={onEdit}
-              style={{
-                padding: '8px 16px',
-                background: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '14px',
-                cursor: 'pointer'
-              }}
-            >
-              Edit Client
-            </button>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '8px 16px',
-                background: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '14px',
-                cursor: 'pointer'
-              }}
-            >
-              Close
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm('Are you sure you want to delete this client?')) {
-                  onDelete(client.id);
-                }
-              }}
-              style={{
-                padding: '8px 16px',
-                background: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '14px',
-                cursor: 'pointer'
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 };
 
@@ -4378,5 +5022,631 @@ const SettingsContent = ({ salonData, ownerData }) => {
     </div>
   );
 };
+const CatalogueSettings = ({ salonData, ownerData, salonId }) => {
+  const [catalogueSettings, setCatalogueSettings] = useState({
+    showContactInfo: true,
+    showBusinessHours: true,
+    showServices: true,
+    showAboutSection: true,
+    salonDescription: '',
+    businessHours: {
+      monday: { open: '09:00', close: '18:00', closed: false },
+      tuesday: { open: '09:00', close: '18:00', closed: false },
+      wednesday: { open: '09:00', close: '18:00', closed: false },
+      thursday: { open: '09:00', close: '18:00', closed: false },
+      friday: { open: '09:00', close: '20:00', closed: false },
+      saturday: { open: '10:00', close: '17:00', closed: false },
+      sunday: { open: '10:00', close: '16:00', closed: true }
+    },
+    contactEmail: ownerData.email || '',
+    contactPhone: salonData.phone || '',
+    address: salonData.address || '',
+    logoUrl: salonData.logoUrl || ''
+  });
 
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null); // Add toast state
+
+  useEffect(() => {
+    fetchServices();
+    loadCatalogueSettings();
+  }, []);
+
+  // Toast function
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const fetchServices = async () => {
+    try {
+      const servicesSnapshot = await getDocs(collection(db, 'salons', salonId, 'services'));
+      const servicesList = servicesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setServices(servicesList);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      showToast('Failed to load services', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCatalogueSettings = async () => {
+    try {
+      const settingsDoc = await getDoc(doc(db, 'salons', salonId, 'catalogue', 'settings'));
+      if (settingsDoc.exists()) {
+        setCatalogueSettings(prev => ({
+          ...prev,
+          ...settingsDoc.data()
+        }));
+      }
+    } catch (error) {
+      console.log('No catalogue settings found, using defaults');
+    }
+  };
+
+  const saveCatalogueSettings = async () => {
+    try {
+      await setDoc(doc(db, 'salons', salonId, 'catalogue', 'settings'), catalogueSettings);
+      showToast('Catalogue settings saved!', 'success');
+    } catch (error) {
+      console.error('Error saving catalogue settings:', error);
+      showToast('Failed to save settings', 'error');
+    }
+  };
+
+  const getCatalogueLink = () => {
+    return `${window.location.origin}/catalogue/${salonId}`;
+  };
+
+  const copyCatalogueLink = () => {
+    navigator.clipboard.writeText(getCatalogueLink());
+    showToast('Catalogue link copied!', 'success');
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // For now, use base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCatalogueSettings(prev => ({
+        ...prev,
+        logoUrl: reader.result
+      }));
+      showToast('Logo uploaded successfully', 'success');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <div className="loading-spinner"></div>
+        <p style={{ color: '#6c757d', marginTop: '10px' }}>Loading catalogue settings...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '20px' }}>
+      {/* Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '24px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
+        <div>
+          <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 4px 0' }}>
+            Business Catalogue
+          </h2>
+          <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
+            Customize your public business profile
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button 
+            onClick={copyCatalogueLink}
+            style={{
+              padding: '10px 16px',
+              background: '#3B82F6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            🔗 Copy Link
+          </button>
+          
+          <button 
+            onClick={saveCatalogueSettings}
+            style={{
+              padding: '10px 16px',
+              background: 'var(--primary-color)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            💾 Save Changes
+          </button>
+        </div>
+      </div>
+
+      {/* Preview Card */}
+      <div className="content-card" style={{ marginBottom: '24px' }}>
+        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          👁️ Preview
+        </h3>
+        <p style={{ color: '#6c757d', fontSize: '14px', marginBottom: '16px' }}>
+          Your clients will see this at: <code style={{ background: '#f8f9fa', padding: '4px 8px', borderRadius: '4px' }}>{getCatalogueLink()}</code>
+        </p>
+        
+        <div style={{ 
+          border: '2px dashed #e9ecef', 
+          borderRadius: '12px', 
+          padding: '20px',
+          background: '#f8fafc',
+          textAlign: 'center'
+        }}>
+          <p style={{ color: '#6c757d', marginBottom: '16px' }}>
+            Preview will show here (coming soon)
+          </p>
+          <button 
+            onClick={() => window.open(getCatalogueLink(), '_blank')}
+            style={{
+              padding: '10px 20px',
+              background: '#10B981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            👁️ Open Public View
+          </button>
+        </div>
+      </div>
+
+      {/* Settings Sections */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        {/* Logo & Basic Info */}
+        <div className="content-card">
+          <h3 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🏢 Salon Information
+          </h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Logo Upload */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                Salon Logo
+              </label>
+              <div style={{
+                width: '120px',
+                height: '120px',
+                border: '2px dashed #d1d5db',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: catalogueSettings.logoUrl ? `url(${catalogueSettings.logoUrl}) center/cover` : '#f9fafb',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+                {!catalogueSettings.logoUrl ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '32px', color: '#9ca3af', marginBottom: '8px' }}>
+                      🏢
+                    </div>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                      Click to upload logo
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ 
+                    background: 'rgba(0,0,0,0.5)', 
+                    color: 'white',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px'
+                  }}>
+                    Change Logo
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Salon Description */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                Salon Description
+              </label>
+              <textarea
+                value={catalogueSettings.salonDescription}
+                onChange={(e) => setCatalogueSettings(prev => ({ ...prev, salonDescription: e.target.value }))}
+                placeholder="Welcome to our salon! We specialize in..."
+                rows="4"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            {/* Contact Info */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  Contact Phone
+                </label>
+                <input
+                  type="tel"
+                  value={catalogueSettings.contactPhone}
+                  onChange={(e) => setCatalogueSettings(prev => ({ ...prev, contactPhone: e.target.value }))}
+                  placeholder="123-456-7890"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  Contact Email
+                </label>
+                <input
+                  type="email"
+                  value={catalogueSettings.contactEmail}
+                  onChange={(e) => setCatalogueSettings(prev => ({ ...prev, contactEmail: e.target.value }))}
+                  placeholder="hello@salon.com"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Address */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                Address
+              </label>
+              <input
+                type="text"
+                value={catalogueSettings.address}
+                onChange={(e) => setCatalogueSettings(prev => ({ ...prev, address: e.target.value }))}
+                placeholder="123 Main Street, City"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '8px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Business Hours */}
+        <div className="content-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              🕒 Business Hours
+            </h3>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={catalogueSettings.showBusinessHours}
+                onChange={(e) => setCatalogueSettings(prev => ({ ...prev, showBusinessHours: e.target.checked }))}
+                style={{ width: '16px', height: '16px' }}
+              />
+              Show on catalogue
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {Object.entries(catalogueSettings.businessHours).map(([day, hours]) => (
+              <div key={day} style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                padding: '12px',
+                background: '#f8f9fa',
+                borderRadius: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: '120px' }}>
+                    <input
+                      type="checkbox"
+                      checked={!hours.closed}
+                      onChange={(e) => {
+                        const updatedHours = { ...catalogueSettings.businessHours };
+                        updatedHours[day].closed = !e.target.checked;
+                        setCatalogueSettings(prev => ({ ...prev, businessHours: updatedHours }));
+                      }}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <span style={{ textTransform: 'capitalize', fontWeight: '500' }}>
+                      {day}
+                    </span>
+                  </label>
+                  
+                  {!hours.closed ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="time"
+                        value={hours.open}
+                        onChange={(e) => {
+                          const updatedHours = { ...catalogueSettings.businessHours };
+                          updatedHours[day].open = e.target.value;
+                          setCatalogueSettings(prev => ({ ...prev, businessHours: updatedHours }));
+                        }}
+                        style={{
+                          padding: '8px',
+                          border: '1px solid #e9ecef',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      <span>to</span>
+                      <input
+                        type="time"
+                        value={hours.close}
+                        onChange={(e) => {
+                          const updatedHours = { ...catalogueSettings.businessHours };
+                          updatedHours[day].close = e.target.value;
+                          setCatalogueSettings(prev => ({ ...prev, businessHours: updatedHours }));
+                        }}
+                        style={{
+                          padding: '8px',
+                          border: '1px solid #e9ecef',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <span style={{ color: '#dc2626', fontWeight: '500' }}>
+                      Closed
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Services Display Settings */}
+        <div className="content-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              💼 Services Display
+            </h3>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={catalogueSettings.showServices}
+                onChange={(e) => setCatalogueSettings(prev => ({ ...prev, showServices: e.target.checked }))}
+                style={{ width: '16px', height: '16px' }}
+              />
+              Show services
+            </label>
+          </div>
+
+          <p style={{ color: '#6c757d', fontSize: '14px', marginBottom: '16px' }}>
+            {services.length} services will be displayed on your catalogue
+          </p>
+          
+          <div style={{ 
+            maxHeight: '300px', 
+            overflowY: 'auto',
+            border: '1px solid #e9ecef',
+            borderRadius: '8px',
+            padding: '16px'
+          }}>
+            {services.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
+                No services added yet. Add services in the Services tab.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {services.slice(0, 5).map(service => (
+                  <div key={service.id} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '12px',
+                    padding: '12px',
+                    background: '#f8f9fa',
+                    borderRadius: '8px'
+                  }}>
+                    {service.imageUrl && (
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        background: `url(${service.imageUrl}) center/cover`,
+                        borderRadius: '6px',
+                        flexShrink: 0
+                      }}></div>
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: '0 0 4px 0', fontWeight: '500' }}>
+                        {service.name}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>
+                        ${service.price} • {service.duration || 30} min
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                
+                {services.length > 5 && (
+                  <div style={{ textAlign: 'center', padding: '12px', color: '#6c757d', fontSize: '14px' }}>
+                    + {services.length - 5} more services...
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Display Options */}
+        <div className="content-card">
+          <h3 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            ⚙️ Display Options
+          </h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+              <div>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '500' }}>Show Contact Information</p>
+                <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>Phone, email, address</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={catalogueSettings.showContactInfo}
+                onChange={(e) => setCatalogueSettings(prev => ({ ...prev, showContactInfo: e.target.checked }))}
+                style={{ width: '20px', height: '20px' }}
+              />
+            </label>
+            
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+              <div>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '500' }}>Show About Section</p>
+                <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>Salon description</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={catalogueSettings.showAboutSection}
+                onChange={(e) => setCatalogueSettings(prev => ({ ...prev, showAboutSection: e.target.checked }))}
+                style={{ width: '20px', height: '20px' }}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? '#10B981' : 
+                    toast.type === 'error' ? '#EF4444' : 
+                    toast.type === 'warning' ? '#F59E0B' : '#3B82F6',
+          color: 'white',
+          padding: '12px 20px',
+          borderRadius: '10px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          minWidth: '280px',
+          maxWidth: '90%',
+          animation: 'slideUp 0.3s ease'
+        }}>
+          <span style={{ fontSize: '18px' }}>
+            {toast.type === 'success' ? '✅' :
+             toast.type === 'error' ? '❌' :
+             toast.type === 'warning' ? '⚠️' : 'ℹ️'}
+          </span>
+          <span style={{ fontSize: '14px', fontWeight: '500', flex: 1 }}>
+            {toast.message}
+          </span>
+          <button 
+            onClick={() => setToast(null)}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: 'white',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Add CSS animation for toast */}
+      <style>{`
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
 export default OwnerDashboard;
