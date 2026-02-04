@@ -8,19 +8,13 @@ import OwnerDashboard from './components/owner/OwnerDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import StaffDashboard from './components/staff/StaffDashboard';
 import ClientConsultation from './components/client/ClientConsultation';
-import CataloguePage from './components/CataloguePage'; // Add this import
+import CataloguePage from './components/CataloguePage';
 
 function App() {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const adminStatus = localStorage.getItem('admin') === 'true';
-    const ownerStatus = localStorage.getItem('owner') === 'true';
-    
-    setIsAdmin(adminStatus);
-    setIsOwner(ownerStatus);
+    // Set loading to false after initial render
     setLoading(false);
   }, []);
 
@@ -52,55 +46,120 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
+          {/* Public Catalogue Route */}
+          <Route path="/catalogue/:salonId" element={<CataloguePage />} />
+          
           {/* Admin Routes */}
-          <Route path="/admin/login" element={
-            !isAdmin ? <AdminLogin /> : <Navigate to="/admin" />
-          } />
-                  <Route path="/catalogue/:salonId" element={<CataloguePage />} />
-
-          <Route path="/admin" element={
-            isAdmin ? <AdminDashboard /> : <Navigate to="/admin/login" />
-          } />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute type="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
           
           {/* Owner Routes */}
-          {/* <Route path="/owner/login" element={
-            !isOwner ? <OwnerLogin /> : <Navigate to="/owner/dashboard" />
-          } /> */}
+          <Route path="/owner/login" element={<OwnerLogin />} />
+          <Route path="/owner/login/:salonId" element={<OwnerLogin />} />
           
-          <Route path="/owner/login/:salonId" element={
-            !isOwner ? <OwnerLogin /> : <Navigate to="/owner/dashboard" />
-          } />
+          {/* Protect both dashboard routes */}
+          <Route 
+            path="/owner/dashboard" 
+            element={
+              <ProtectedRoute type="owner">
+                <OwnerDashboard />
+              </ProtectedRoute>
+            } 
+          />
           
-          {/* <Route path="/owner/dashboard" element={
-            isOwner ? <OwnerDashboard /> : <Navigate to="/owner/login" />
-          } /> */}
+          <Route 
+            path="/owner/dashboard/:salonId" 
+            element={
+              <ProtectedRoute type="owner">
+                <OwnerDashboard />
+              </ProtectedRoute>
+            } 
+          />
           
-          {/* <Route path="/owner/dashboard/:salonId" element={
-            isOwner ? <OwnerDashboard /> : <Navigate to="/owner/login" />
-          } /> */}
-                  {/* <Route path="/" element={<Navigate to="/owner/login" />} /> */}
-<Route path="/staff/:code" element={<StaffDashboard />} />
-<Route path="/client/:salonId" element={<ClientConsultation />} />
-
-// In App.js - Update owner routes
-<Route path="/owner/login" element={<OwnerLogin />} />
-<Route path="/owner/dashboard/:salonId" element={<OwnerDashboard />} />
- <Route 
-          path="/owner/dashboard" 
-          element={
-            <ProtectedRoute type="owner">
-              <OwnerDashboard />
-            </ProtectedRoute>
-          } 
-        />          {/* Root redirect - Change to admin login for now */}
-          <Route path="/" element={<Navigate to="/admin/login" />} />
+          {/* Staff and Client Public Routes */}
+          <Route path="/staff/:code" element={<StaffDashboard />} />
+          <Route path="/client/:salonId" element={<ClientConsultation />} />
           
-          {/* Coming Soon */}
-          <Route path="/staff/*" element={<div style={{ padding: '20px' }}>Staff Portal - Coming Soon</div>} />
-          <Route path="/client/*" element={<div style={{ padding: '20px' }}>Client Portal - Coming Soon</div>} />
+          {/* Root redirect based on localStorage */}
+          <Route 
+            path="/" 
+            element={<RootRedirect />} 
+          />
+          
+          {/* 404 Page */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>
     </Router>
+  );
+}
+
+// Helper component for root redirect
+function RootRedirect() {
+  useEffect(() => {
+    const isAdmin = localStorage.getItem('admin') === 'true';
+    const isOwner = localStorage.getItem('owner') === 'true';
+    const salonId = localStorage.getItem('salonId');
+    
+    if (isAdmin) {
+      window.location.href = '/admin';
+    } else if (isOwner && salonId) {
+      window.location.href = `/owner/dashboard/${salonId}`;
+    } else if (isOwner) {
+      window.location.href = '/owner/dashboard';
+    } else {
+      window.location.href = '/admin/login';
+    }
+  }, []);
+
+  return (
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center' 
+    }}>
+      <p>Redirecting...</p>
+    </div>
+  );
+}
+
+// 404 Page Component
+function NotFoundPage() {
+  return (
+    <div style={{ 
+      padding: '40px', 
+      textAlign: 'center',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>404</h1>
+      <p style={{ fontSize: '18px', marginBottom: '20px' }}>Page not found</p>
+      <button 
+        onClick={() => window.history.back()}
+        style={{
+          padding: '10px 20px',
+          background: '#3B82F6',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer'
+        }}
+      >
+        Go Back
+      </button>
+    </div>
   );
 }
 

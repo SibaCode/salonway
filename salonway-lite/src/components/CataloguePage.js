@@ -1,9 +1,12 @@
-// CataloguePage.js - SIMPLE & CLEAN
+// CataloguePage.js - Clean Professional Layout
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../config/firebase';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
-import { MapPin, Phone, Clock, Scissors, MessageCircle } from 'lucide-react';
+import { 
+  MapPin, Phone, Clock, Scissors, MessageCircle, 
+  Star, ChevronDown, Calendar, Banknote, AlertCircle
+} from 'lucide-react';
 
 const CataloguePage = () => {
   const { salonId } = useParams();
@@ -12,6 +15,8 @@ const CataloguePage = () => {
   const [catalogueSettings, setCatalogueSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [showHours, setShowHours] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
 
   useEffect(() => {
     fetchCatalogueData();
@@ -49,7 +54,9 @@ const CataloguePage = () => {
     light: '#F9FAFB',
     text: '#4B5563',
     white: '#FFFFFF',
-    whatsapp: '#25D366'
+    whatsapp: '#25D366',
+    success: '#10B981',
+    warning: '#F59E0B'
   };
 
   // Categories and filtering
@@ -72,7 +79,7 @@ const CataloguePage = () => {
     openWhatsApp(message);
   };
 
-  const handleContactClick = () => {
+  const handleBookClick = () => {
     openWhatsApp(`Hi ${salonData?.name || 'there'}! I'd like to book an appointment.`);
   };
 
@@ -83,12 +90,13 @@ const CataloguePage = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: colors.light
+        background: colors.white,
+        padding: '20px'
       }}>
         <div style={{
           width: '40px',
           height: '40px',
-          border: `3px solid ${colors.light}`,
+          border: `3px solid #f1f3f5`,
           borderTop: `3px solid ${colors.primary}`,
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
@@ -110,13 +118,20 @@ const CataloguePage = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: colors.light,
+        background: colors.white,
         textAlign: 'center',
         padding: '20px'
       }}>
         <div>
           <Scissors size={40} color={colors.text} />
-          <h2 style={{ color: colors.dark, marginTop: '16px', fontSize: '18px' }}>Salon Not Found</h2>
+          <h2 style={{ 
+            color: colors.dark, 
+            marginTop: '16px', 
+            fontSize: '18px',
+            fontWeight: '600'
+          }}>
+            Salon Not Found
+          </h2>
         </div>
       </div>
     );
@@ -127,89 +142,450 @@ const CataloguePage = () => {
       minHeight: '100vh',
       background: colors.white,
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      color: colors.text
+      color: colors.text,
+      maxWidth: '600px',
+      margin: '0 auto'
     }}>
-      {/* HEADER - Minimal */}
+      {/* HEADER SECTION */}
       <header style={{
-        padding: '24px 20px',
-        textAlign: 'center',
-        borderBottom: `1px solid #f3f4f6`
+        padding: '20px',
+        background: colors.white,
+        borderBottom: `1px solid #f1f3f5`
       }}>
-        {catalogueSettings?.logoUrl ? (
-          <img 
-            src={catalogueSettings.logoUrl} 
-            alt={salonData.name} 
-            style={{
-              height: '50px',
-              marginBottom: '12px',
-              objectFit: 'contain'
-            }}
-          />
-        ) : (
-          <div style={{
-            width: '50px',
-            height: '50px',
-            margin: '0 auto 12px',
+        {/* Salon Identity */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          marginBottom: '20px'
+        }}>
+          {/* Logo */}
+          {catalogueSettings?.logoUrl ? (
+            <img 
+              src={catalogueSettings.logoUrl} 
+              alt={salonData.name} 
+              style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '12px',
+                objectFit: 'cover',
+                flexShrink: 0
+              }}
+            />
+          ) : (
+            <div style={{
+              width: '60px',
+              height: '60px',
+              background: colors.primary,
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: colors.white,
+              flexShrink: 0
+            }}>
+              <Scissors size={28} />
+            </div>
+          )}
+          
+          {/* Salon Name & Rating */}
+          <div style={{ flex: 1 }}>
+            <h1 style={{
+              fontSize: '22px',
+              fontWeight: '700',
+              color: colors.dark,
+              margin: '0 0 8px 0',
+              lineHeight: '1.2'
+            }}>
+              {salonData.name}
+            </h1>
+            
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px'
+              }}>
+                {[...Array(5)].map((_, i) => (
+                  <Star 
+                    key={i} 
+                    size={16} 
+                    color={colors.primary} 
+                    fill={colors.primary}
+                    style={{ flexShrink: 0 }}
+                  />
+                ))}
+              </div>
+              <span style={{
+                fontSize: '14px',
+                color: colors.dark,
+                fontWeight: '600'
+              }}>
+                5.0
+              </span>
+              <span style={{
+                fontSize: '14px',
+                color: colors.text
+              }}>
+                (1 review)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Book Button */}
+        <button
+          onClick={handleBookClick}
+          style={{
+            width: '100%',
+            padding: '16px',
             background: colors.primary,
+            color: colors.white,
+            border: 'none',
             borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: colors.white
-          }}>
-            <Scissors size={24} />
-          </div>
-        )}
-        
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: '700',
-          color: colors.dark,
-          margin: '0 0 4px 0'
+            gap: '10px',
+            marginBottom: '20px'
+          }}
+        >
+          <Calendar size={20} />
+          Book Appointment
+        </button>
+
+        {/* Opening Hours */}
+        <div style={{
+          marginBottom: '20px'
         }}>
-          {salonData.name}
-        </h1>
-        
-        {salonData.tagline && (
-          <p style={{
-            fontSize: '14px',
-            color: colors.primary,
-            fontWeight: '500',
-            margin: 0
+          <button
+            onClick={() => setShowHours(!showHours)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'transparent',
+              border: 'none',
+              padding: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <Clock size={20} color={colors.primary} />
+              <div style={{ textAlign: 'left' }}>
+                <div style={{
+                  fontSize: '14px',
+                  color: colors.text,
+                  marginBottom: '2px'
+                }}>
+                  Opening hours
+                </div>
+                <div style={{
+                  fontSize: '15px',
+                  color: colors.dark,
+                  fontWeight: '500'
+                }}>
+                  Closed • Opens 8 AM Thu
+                </div>
+              </div>
+            </div>
+            <ChevronDown 
+              size={20} 
+              color={colors.text} 
+              style={{ 
+                transform: showHours ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s'
+              }}
+            />
+          </button>
+          
+          {showHours && catalogueSettings?.businessHours && (
+            <div style={{
+              padding: '16px',
+              background: colors.light,
+              borderRadius: '8px',
+              marginTop: '8px'
+            }}>
+              {Object.entries(catalogueSettings.businessHours).map(([day, hours]) => (
+                <div key={day} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '8px 0',
+                  borderBottom: '1px solid rgba(0,0,0,0.05)',
+                  fontSize: '14px'
+                }}>
+                  <span style={{ 
+                    textTransform: 'capitalize',
+                    color: colors.text
+                  }}>
+                    {day}
+                  </span>
+                  <span style={{ 
+                    fontWeight: '500',
+                    color: hours.closed ? '#DC2626' : colors.dark
+                  }}>
+                    {hours.closed ? 'Closed' : `${hours.open} - ${hours.close}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Address */}
+        {catalogueSettings?.address && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            padding: '12px',
+            borderTop: '1px solid #f1f3f5'
           }}>
-            {salonData.tagline}
-          </p>
+            <MapPin size={20} color={colors.primary} />
+            <div>
+              <div style={{
+                fontSize: '14px',
+                color: colors.text,
+                marginBottom: '4px'
+              }}>
+                Address
+              </div>
+              <div style={{
+                fontSize: '15px',
+                color: colors.dark,
+                fontWeight: '500',
+                lineHeight: '1.4'
+              }}>
+                {catalogueSettings.address}
+              </div>
+            </div>
+          </div>
         )}
       </header>
 
-      {/* CATEGORY FILTER */}
-      {categories.length > 1 && (
-        <div style={{
-          padding: '16px 20px',
-          background: colors.white,
-          borderBottom: `1px solid #f3f4f6`
+      {/* BOOKING POLICY */}
+      <section style={{
+        padding: '20px',
+        background: colors.white,
+        borderBottom: `1px solid #f1f3f5`
+      }}>
+        <button
+          onClick={() => setShowPolicy(!showPolicy)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'transparent',
+            border: 'none',
+            padding: '0',
+            cursor: 'pointer',
+            marginBottom: showPolicy ? '16px' : '0'
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <AlertCircle size={20} color={colors.warning} />
+            <div style={{
+              fontSize: '16px',
+              color: colors.dark,
+              fontWeight: '600'
+            }}>
+              Our Booking Policy
+            </div>
+          </div>
+          <ChevronDown 
+            size={20} 
+            color={colors.text} 
+            style={{ 
+              transform: showPolicy ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s'
+            }}
+          />
+        </button>
+        
+        {showPolicy && (
+          <div style={{
+            padding: '16px',
+            background: colors.light,
+            borderRadius: '12px',
+            marginTop: '16px'
+          }}>
+            <div style={{
+              fontSize: '14px',
+              color: colors.dark,
+              fontWeight: '500',
+              marginBottom: '12px',
+              lineHeight: '1.6'
+            }}>
+              Hello gorgeous!
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              marginBottom: '16px',
+              padding: '12px',
+              background: colors.white,
+              borderRadius: '8px',
+              border: `1px solid ${colors.warning}30`
+            }}>
+              <AlertCircle size={18} color={colors.warning} />
+              <div>
+                <div style={{
+                  fontSize: '14px',
+                  color: colors.dark,
+                  fontWeight: '600',
+                  marginBottom: '4px'
+                }}>
+                  IMPORTANT
+                </div>
+                <div style={{
+                  fontSize: '13px',
+                  color: colors.text,
+                  lineHeight: '1.5'
+                }}>
+                  Your appointment is only secured by a DEPOSIT PAYMENT of 50% (immediate payment) made 1 hr after booking.
+                </div>
+              </div>
+            </div>
+            
+            <div style={{
+              background: colors.white,
+              borderRadius: '8px',
+              padding: '16px',
+              border: `1px solid #f1f3f5`
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px'
+              }}>
+                <Banknote size={18} color={colors.primary} />
+                <div style={{
+                  fontSize: '14px',
+                  color: colors.dark,
+                  fontWeight: '600'
+                }}>
+                  Banking Details
+                </div>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                fontSize: '13px'
+              }}>
+                <div style={{ display: 'flex' }}>
+                  <div style={{ 
+                    width: '100px', 
+                    color: colors.text,
+                    flexShrink: 0 
+                  }}>
+                    Bank:
+                  </div>
+                  <div style={{ color: colors.dark, fontWeight: '500' }}>
+                    Nedbank
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex' }}>
+                  <div style={{ 
+                    width: '100px', 
+                    color: colors.text,
+                    flexShrink: 0 
+                  }}>
+                    Acc holder:
+                  </div>
+                  <div style={{ color: colors.dark, fontWeight: '500' }}>
+                    KAT MOETI PTY LTD
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex' }}>
+                  <div style={{ 
+                    width: '100px', 
+                    color: colors.text,
+                    flexShrink: 0 
+                  }}>
+                    Acc number:
+                  </div>
+                  <div style={{ color: colors.dark, fontWeight: '500' }}>
+                    1329805909
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex' }}>
+                  <div style={{ 
+                    width: '100px', 
+                    color: colors.text,
+                    flexShrink: 0 
+                  }}>
+                    Reference:
+                  </div>
+                  <div style={{ color: colors.dark, fontWeight: '500' }}>
+                    Name + Date (eg. Katleho13)
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* SERVICES SECTION */}
+      <section style={{
+        padding: '20px',
+        background: colors.white
+      }}>
+        <h2 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: colors.dark,
+          margin: '0 0 20px 0'
         }}>
+          Our Services
+        </h2>
+
+        {/* Category Filter */}
+        {categories.length > 1 && (
           <div style={{
             display: 'flex',
             gap: '8px',
             overflowX: 'auto',
-            scrollbarWidth: 'none'
+            marginBottom: '24px',
+            paddingBottom: '8px'
           }}>
-            <style>{`
-              ::-webkit-scrollbar { display: none; }
-            `}</style>
-            
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 style={{
-                  padding: '8px 16px',
-                  background: activeCategory === cat ? colors.primary : colors.white,
+                  padding: '10px 18px',
+                  background: activeCategory === cat ? colors.primary : '#f8f9fa',
                   color: activeCategory === cat ? colors.white : colors.text,
-                  border: `1px solid ${activeCategory === cat ? colors.primary : '#e5e7eb'}`,
-                  borderRadius: '20px',
-                  fontSize: '13px',
+                  border: 'none',
+                  borderRadius: '24px',
+                  fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -220,168 +596,161 @@ const CataloguePage = () => {
               </button>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* SERVICES GALLERY */}
-      <main style={{
-        padding: '20px',
-        maxWidth: '1200px',
-        margin: '0 auto'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: '20px'
-        }}>
-          {filteredServices.map(service => (
-            <div 
-              key={service.id}
-              onClick={() => handleServiceClick(service)}
-              style={{
-                background: colors.white,
-                borderRadius: '12px',
-                overflow: 'hidden',
-                border: `1px solid #f3f4f6`,
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-            >
-              {/* Service Image */}
-              <div style={{
-                height: '180px',
-                background: service.imageUrl 
-                  ? `url(${service.imageUrl}) center/cover`
-                  : colors.primary + '10',
-                position: 'relative'
-              }}>
-                {!service.imageUrl && (
+        {/* Services Grid */}
+        {filteredServices.length > 0 ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px'
+          }}>
+            {filteredServices.map(service => (
+              <div 
+                key={service.id}
+                style={{
+                  background: colors.white,
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  border: `1px solid #f1f3f5`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                }}
+              >
+                {/* Service Image */}
+                <div style={{
+                  height: '180px',
+                  background: service.imageUrl 
+                    ? `url(${service.imageUrl}) center/cover`
+                    : `linear-gradient(135deg, ${colors.primary}15, ${colors.secondary}15)`,
+                  position: 'relative'
+                }}>
+                  {!service.imageUrl && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      color: colors.primary,
+                      opacity: 0.2
+                    }}>
+                      <Scissors size={48} />
+                    </div>
+                  )}
+                  
+                  {/* Price */}
                   <div style={{
                     position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    color: colors.primary,
-                    opacity: 0.3
-                  }}>
-                    <Scissors size={40} />
-                  </div>
-                )}
-                
-                {/* Price Tag */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: '12px',
-                  left: '12px',
-                  background: colors.primary,
-                  color: colors.white,
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  fontSize: '16px',
-                  fontWeight: '700'
-                }}>
-                  ${service.price}
-                </div>
-              </div>
-
-              {/* Service Info */}
-              <div style={{ padding: '16px' }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '8px'
-                }}>
-                  <h3 style={{
+                    top: '12px',
+                    right: '12px',
+                    background: colors.primary,
+                    color: colors.white,
+                    padding: '8px 14px',
+                    borderRadius: '20px',
                     fontSize: '16px',
-                    fontWeight: '600',
-                    color: colors.dark,
-                    margin: 0,
-                    flex: 1
+                    fontWeight: '700'
                   }}>
-                    {service.name}
-                  </h3>
+                    ${service.price}
+                  </div>
                   
+                  {/* Duration */}
                   <div style={{
+                    position: 'absolute',
+                    bottom: '12px',
+                    left: '12px',
+                    background: 'rgba(255,255,255,0.95)',
+                    padding: '6px 12px',
+                    borderRadius: '16px',
+                    fontSize: '12px',
+                    fontWeight: '600',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    color: colors.text,
-                    fontSize: '12px',
-                    fontWeight: '500'
+                    color: colors.text
                   }}>
                     <Clock size={12} />
-                    <span>{service.duration || 30}m</span>
+                    {service.duration || 30} min
                   </div>
                 </div>
-                
-                {service.category && (
+
+                {/* Service Info */}
+                <div style={{ padding: '16px' }}>
                   <div style={{
-                    display: 'inline-block',
-                    background: colors.primary + '10',
-                    color: colors.primary,
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                    fontWeight: '500',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
                     marginBottom: '12px'
                   }}>
-                    {service.category}
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{
+                        fontSize: '16px',
+                        fontWeight: '700',
+                        color: colors.dark,
+                        margin: '0 0 8px 0',
+                        lineHeight: '1.3'
+                      }}>
+                        {service.name}
+                      </h3>
+                      
+                      {service.category && (
+                        <div style={{
+                          display: 'inline-block',
+                          background: colors.primary + '15',
+                          color: colors.primary,
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {service.category}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-                
-                {service.description && (
-                  <p style={{
-                    fontSize: '13px',
-                    color: colors.text,
-                    lineHeight: '1.4',
-                    margin: '0 0 12px 0'
-                  }}>
-                    {service.description}
-                  </p>
-                )}
-                
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleServiceClick(service);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    background: colors.whatsapp,
-                    color: colors.white,
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <MessageCircle size={14} />
-                  Book Now
-                </button>
+                  
+                  {service.description && (
+                    <p style={{
+                      fontSize: '14px',
+                      color: colors.text,
+                      lineHeight: '1.4',
+                      margin: '0 0 20px 0'
+                    }}>
+                      {service.description}
+                    </p>
+                  )}
+                  
+                  <button
+                    onClick={() => handleServiceClick(service)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: colors.whatsapp,
+                      color: colors.white,
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <MessageCircle size={16} />
+                    Book This Service
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {filteredServices.length === 0 && (
+            ))}
+          </div>
+        ) : (
           <div style={{
             textAlign: 'center',
             padding: '40px 20px',
             background: colors.light,
-            borderRadius: '12px',
-            marginTop: '20px'
+            borderRadius: '12px'
           }}>
-            <Scissors size={32} color={colors.text} style={{ opacity: 0.4 }} />
+            <Scissors size={40} color={colors.primary} style={{ opacity: 0.5 }} />
             <p style={{
               color: colors.text,
               marginTop: '12px',
@@ -391,169 +760,105 @@ const CataloguePage = () => {
             </p>
           </div>
         )}
-      </main>
+      </section>
 
-      {/* CONTACT DETAILS - Simple */}
+      {/* CONTACT SECTION */}
       <section style={{
-        padding: '32px 20px',
+        padding: '20px',
         background: colors.light,
-        borderTop: `1px solid #f3f4f6`
+        borderTop: `1px solid #f1f3f5`
       }}>
+        <h2 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: colors.dark,
+          margin: '0 0 20px 0',
+          textAlign: 'center'
+        }}>
+          Contact Us
+        </h2>
+        
         <div style={{
-          maxWidth: '600px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          maxWidth: '400px',
           margin: '0 auto'
         }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: colors.dark,
-            margin: '0 0 24px 0',
-            textAlign: 'center'
-          }}>
-            Contact Us
-          </h2>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '20px',
-            marginBottom: '24px'
-          }}>
-            {catalogueSettings?.address && (
-              <div style={{
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  margin: '0 auto 12px',
-                  background: colors.primary + '15',
-                  borderRadius: '50%',
+          {catalogueSettings?.contactPhone && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px'
+            }}>
+              <a 
+                href={`tel:${catalogueSettings.contactPhone}`}
+                style={{
+                  fontSize: '16px',
+                  color: colors.primary,
+                  textDecoration: 'none',
+                  fontWeight: '600',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <MapPin size={18} color={colors.primary} />
-                </div>
-                <p style={{
-                  fontSize: '14px',
-                  color: colors.dark,
-                  fontWeight: '500',
-                  margin: '0 0 4px 0'
-                }}>
-                  Location
-                </p>
-                <p style={{
-                  fontSize: '13px',
-                  color: colors.text,
-                  margin: 0
-                }}>
-                  {catalogueSettings.address}
-                </p>
-              </div>
-            )}
-            
-            {catalogueSettings?.contactPhone && (
-              <div style={{
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  margin: '0 auto 12px',
-                  background: colors.whatsapp + '15',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Phone size={18} color={colors.whatsapp} />
-                </div>
-                <p style={{
-                  fontSize: '14px',
-                  color: colors.dark,
-                  fontWeight: '500',
-                  margin: '0 0 4px 0'
-                }}>
-                  Phone
-                </p>
-                <a 
-                  href={`tel:${catalogueSettings.contactPhone}`}
-                  style={{
-                    fontSize: '15px',
-                    color: colors.whatsapp,
-                    textDecoration: 'none',
-                    fontWeight: '600',
-                    display: 'block'
-                  }}
-                >
-                  {catalogueSettings.contactPhone}
-                </a>
-              </div>
-            )}
-            
-            {catalogueSettings?.showBusinessHours && (
-              <div style={{
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  margin: '0 auto 12px',
-                  background: colors.secondary + '15',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Clock size={18} color={colors.secondary} />
-                </div>
-                <p style={{
-                  fontSize: '14px',
-                  color: colors.dark,
-                  fontWeight: '500',
-                  margin: '0 0 4px 0'
-                }}>
-                  Hours
-                </p>
-                <p style={{
-                  fontSize: '13px',
-                  color: colors.text,
-                  margin: 0
-                }}>
-                  {catalogueSettings.businessHours?.monday?.open || '9:00'} - {catalogueSettings.businessHours?.monday?.close || '18:00'}
-                </p>
-              </div>
-            )}
-          </div>
+                  gap: '8px'
+                }}
+              >
+                <Phone size={18} />
+                {catalogueSettings.contactPhone}
+              </a>
+            </div>
+          )}
           
           <button
-            onClick={handleContactClick}
+            onClick={handleBookClick}
             style={{
-              width: '100%',
-              padding: '14px',
+              padding: '16px',
               background: colors.whatsapp,
               color: colors.white,
               border: 'none',
-              borderRadius: '10px',
-              fontSize: '15px',
+              borderRadius: '12px',
+              fontSize: '16px',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px'
+              gap: '10px'
             }}
           >
-            <MessageCircle size={18} />
-            Message on WhatsApp
+            <MessageCircle size={20} />
+            WhatsApp Us
           </button>
         </div>
       </section>
 
+      {/* FOOTER */}
+      <footer style={{
+        padding: '24px 20px',
+        background: colors.dark,
+        color: colors.white,
+        textAlign: 'center'
+      }}>
+        <div style={{
+          fontSize: '12px',
+          opacity: 0.8,
+          margin: '0 0 8px 0'
+        }}>
+          {salonData.name}
+        </div>
+        <div style={{
+          fontSize: '11px',
+          opacity: 0.6,
+          margin: 0
+        }}>
+          © {new Date().getFullYear()} • Professional Beauty Services
+        </div>
+      </footer>
+
       {/* FLOATING WHATSAPP BUTTON */}
       <button
-        onClick={handleContactClick}
+        onClick={handleBookClick}
         style={{
           position: 'fixed',
           bottom: '20px',
@@ -568,35 +873,12 @@ const CataloguePage = () => {
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 20px rgba(37, 211, 102, 0.4)',
           zIndex: 1000
         }}
       >
         <MessageCircle size={24} />
       </button>
-
-      {/* SIMPLE FOOTER */}
-      <footer style={{
-        padding: '24px 20px',
-        background: colors.dark,
-        color: colors.white,
-        textAlign: 'center'
-      }}>
-        <p style={{
-          fontSize: '12px',
-          opacity: 0.8,
-          margin: '0 0 8px 0'
-        }}>
-          {salonData.name}
-        </p>
-        <p style={{
-          fontSize: '11px',
-          opacity: 0.6,
-          margin: 0
-        }}>
-          © {new Date().getFullYear()} • Professional Beauty Services
-        </p>
-      </footer>
     </div>
   );
 };
