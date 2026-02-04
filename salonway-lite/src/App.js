@@ -7,6 +7,7 @@ import OwnerLogin from './components/owner/OwnerLogin';
 import OwnerDashboard from './components/owner/OwnerDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import StaffDashboard from './components/staff/StaffDashboard';
+import ClientConsultation from './components/client/ClientConsultation';
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -77,6 +78,7 @@ function App() {
           } /> */}
                   {/* <Route path="/" element={<Navigate to="/owner/login" />} /> */}
 <Route path="/staff/:code" element={<StaffDashboard />} />
+<Route path="/client/:salonId" element={<ClientConsultation />} />
 
 // In App.js - Update owner routes
 <Route path="/owner/login" element={<OwnerLogin />} />
