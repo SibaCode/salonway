@@ -8,6 +8,7 @@ import OwnerDashboard from './components/owner/OwnerDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import StaffDashboard from './components/staff/StaffDashboard';
 import ClientConsultation from './components/client/ClientConsultation';
+import CataloguePage from './components/CataloguePage'; // Add this import
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -55,7 +56,8 @@ function App() {
           <Route path="/admin/login" element={
             !isAdmin ? <AdminLogin /> : <Navigate to="/admin" />
           } />
-          
+                  <Route path="/catalogue/:salonId" element={<CataloguePage />} />
+
           <Route path="/admin" element={
             isAdmin ? <AdminDashboard /> : <Navigate to="/admin/login" />
           } />

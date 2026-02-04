@@ -1013,9 +1013,9 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
-      {activeTab === 'consultations' && (
+      {/* {activeTab === 'consultations' && (
   <ConsultationsContent salonId={salonData.id} />
-)}
+)} */}
       {/* Salon Details Modal */}
       {showDetailsModal && selectedSalon && (
         <SalonDetailsModal
