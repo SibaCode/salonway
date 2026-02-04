@@ -81,7 +81,7 @@ const StaffDashboard = () => {
   });
   
   const [clientForms, setClientForms] = useState([]);
-  const [currentClientForm, setCurrentClientForm] = useState(null);
+  // const [currentClientForm, setCurrentClientForm] = useState(null);
 
   const showToast = (message, type = 'info') => {
     setToast({ message, type, id: Date.now() });
@@ -138,7 +138,13 @@ const StaffDashboard = () => {
     };
 
     if (code) findStaff();
-  }, [code]);
+  }, [code, 
+  checkClockStatus, 
+  listenToClientForms, 
+  loadMyForms, 
+  loadServices, 
+  loadTodaysWork, 
+  loadStats]);
 
   // Load services
   const loadServices = async (salonId) => {
@@ -561,7 +567,7 @@ const StaffDashboard = () => {
         reviewedAt: serverTimestamp()
       });
       
-      setCurrentClientForm(null);
+      // setCurrentClientForm(null);
       setShowFormDetails(null);
       
       // Update local state

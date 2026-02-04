@@ -61,10 +61,10 @@ const ServicesContent = ({ salonId, salonData = {}, ownerData = {} }) => {
   const [viewMode, setViewMode] = useState('manage');
 
   // Simple toast function
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+const showToast = useCallback((message, type = 'success') => {
+  setToast({ message, type });
+  setTimeout(() => setToast(null), 3000);
+}, []);
 
   // Filter services based on active category
   const filteredServices = activeCategory === 'All' 
