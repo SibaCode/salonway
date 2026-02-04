@@ -1,5 +1,5 @@
 // src/components/owner/OwnerDashboard.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   doc, 
@@ -9,8 +9,10 @@ import {
   addDoc,
   query, 
   where, 
-  orderBy, updateDoc,serverTimestamp,
-  deleteDoc,  // ADD THIS
+  orderBy, 
+  updateDoc,
+  serverTimestamp,
+  deleteDoc,
   setDoc,
   limit 
 } from 'firebase/firestore';
@@ -22,13 +24,12 @@ import {
   FaShoppingBag,
   FaCrown,
   FaChevronRight,
-
 } from 'react-icons/fa';
 import './css/OwnerDashboard.css';
 import ServicesContent from './ServicesContent';
 import ClientsContent from './ClientsContent';
 
-// First, add this toast notification component at the top of your file (after imports)
+// Toast notification component
 const ToastNotification = ({ message, type = 'success', onClose }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -104,26 +105,15 @@ const toastStyles = `
 }
 `;
 
-// Then update your StaffContent component
-
 const OwnerDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [ownerData, setOwnerData] = useState(null);
   const [salonData, setSalonData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalStaff: 0,
-    activeServices: 0,
-    monthlyRevenue: 0,
-    todayAppointments: 0
-  });
+  // Removed unused stats state since it's not being used in the component
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const owner = JSON.parse(localStorage.getItem('salonOwner'));
       if (!owner) {
@@ -143,9 +133,6 @@ const OwnerDashboard = () => {
         // Set CSS variables for salon colors
         document.documentElement.style.setProperty('--primary-color', data.primaryColor || '#3B82F6');
         document.documentElement.style.setProperty('--secondary-color', data.secondaryColor || '#10B981');
-        
-        // Fetch stats
-        await fetchStats(owner.salonId);
       } else {
         handleLogout();
       }
@@ -155,85 +142,60 @@ const OwnerDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const fetchStats = async (salonId) => {
-    try {
-      // Fetch staff count
-      const staffSnapshot = await getDocs(collection(db, 'salons', salonId, 'staff'));
-      const staffCount = staffSnapshot.size;
-      
-      // Fetch services count
-      const servicesSnapshot = await getDocs(collection(db, 'salons', salonId, 'services'));
-      const servicesCount = servicesSnapshot.size;
-      
-      // For now, use mock data - in production, fetch real data
-      setStats({
-        totalStaff: staffCount,
-        activeServices: servicesCount,
-        monthlyRevenue: 0, // Start with 0
-        todayAppointments: 0 // Start with 0
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      // Set all zeros if there's an error
-      setStats({
-        totalStaff: 0,
-        activeServices: 0,
-        monthlyRevenue: 0,
-        todayAppointments: 0
-      });
-    }
-  };
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const handleLogout = () => {
     localStorage.removeItem('salonOwner');
     navigate('/owner/login');
   };
 
- const BottomNav = () => (
-  <nav className="bottom-nav">
-    <button 
-      onClick={() => setActiveTab('dashboard')}
-      className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-    >
-      <span className="nav-icon">🏠</span>
-      <span className="nav-label">Home</span>
-    </button>
-    
-    <button 
-      onClick={() => setActiveTab('staff')}
-      className={`nav-btn ${activeTab === 'staff' ? 'active' : ''}`}
-    >
-      <span className="nav-icon">👥</span>
-      <span className="nav-label">Staff</span>
-    </button>
-    
-    <button 
-      onClick={() => setActiveTab('services')}
-      className={`nav-btn ${activeTab === 'services' ? 'active' : ''}`}
-    >
-      <span className="nav-icon">💼</span>
-      <span className="nav-label">Services</span>
-    </button>
-    
-    <button 
-      onClick={() => setActiveTab('clients')}
-      className={`nav-btn ${activeTab === 'clients' ? 'active' : ''}`}
-    >
-      <span className="nav-icon">👤</span>
-      <span className="nav-label">Clients</span>
-    </button>
-    
-    <button 
-      onClick={() => setActiveTab('more')}
-      className={`nav-btn ${activeTab === 'more' ? 'active' : ''}`}
-    >
-      <span className="nav-icon">⚙️</span>
-      <span className="nav-label">More</span>
-    </button>
-  </nav>
-);
+  const BottomNav = () => (
+    <nav className="bottom-nav">
+      <button 
+        onClick={() => setActiveTab('dashboard')}
+        className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+      >
+        <span className="nav-icon">🏠</span>
+        <span className="nav-label">Home</span>
+      </button>
+      
+      <button 
+        onClick={() => setActiveTab('staff')}
+        className={`nav-btn ${activeTab === 'staff' ? 'active' : ''}`}
+      >
+        <span className="nav-icon">👥</span>
+        <span className="nav-label">Staff</span>
+      </button>
+      
+      <button 
+        onClick={() => setActiveTab('services')}
+        className={`nav-btn ${activeTab === 'services' ? 'active' : ''}`}
+      >
+        <span className="nav-icon">💼</span>
+        <span className="nav-label">Services</span>
+      </button>
+      
+      <button 
+        onClick={() => setActiveTab('clients')}
+        className={`nav-btn ${activeTab === 'clients' ? 'active' : ''}`}
+      >
+        <span className="nav-icon">👤</span>
+        <span className="nav-label">Clients</span>
+      </button>
+      
+      <button 
+        onClick={() => setActiveTab('more')}
+        className={`nav-btn ${activeTab === 'more' ? 'active' : ''}`}
+      >
+        <span className="nav-icon">⚙️</span>
+        <span className="nav-label">More</span>
+      </button>
+    </nav>
+  );
 
   if (loading) {
     return (
@@ -249,174 +211,171 @@ const OwnerDashboard = () => {
   }
 
   // Desktop Sidebar Component
-const DesktopSidebar = () => (
-  <aside className="desktop-sidebar">
-    <div className="sidebar-header">
-      <div className="salon-logo" style={{ background: salonData.primaryColor || '#3B82F6' }}>
-        {salonData.name?.charAt(0) || 'S'}
-      </div>
-      <div className="salon-name">{salonData.name}</div>
-      <div className="owner-name">{ownerData.name}</div>
-    </div>
-
-    <nav className="sidebar-nav">
-      {[
-        { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
-        { id: 'staff', label: 'Staff', icon: '👥' },
-        { id: 'services', label: 'Services', icon: '💼' },
-        { id: 'clients', label: 'Clients', icon: '👤' },
-        // { id: 'catalogue', label: 'Catalogue', icon: '🏢' }
-
-        // { id: 'gallery', label: 'Gallery', icon: '🖼️' },
-        // { id: 'reports', label: 'Reports', icon: '📊' },
-        // { id: 'settings', label: 'Settings', icon: '⚙️' },
-      ].map((item) => (
-        <div
-          key={item.id}
-          className={`sidebar-nav-item ${activeTab === item.id ? 'active' : ''}`}
-          onClick={() => setActiveTab(item.id)}
-        >
-          <span className="sidebar-nav-icon">{item.icon}</span>
-          <span className="sidebar-nav-label">{item.label}</span>
+  const DesktopSidebar = () => (
+    <aside className="desktop-sidebar">
+      <div className="sidebar-header">
+        <div className="salon-logo" style={{ background: salonData.primaryColor || '#3B82F6' }}>
+          {salonData.name?.charAt(0) || 'S'}
         </div>
-      ))}
-    </nav>
-
-    <div className="sidebar-footer">
-      <button onClick={handleLogout} className="logout-btn">
-        <FaSignOutAlt /> Logout
-      </button>
-    </div>
-  </aside>
-);
-const MoreContent = ({ salonData, ownerData, setActiveTab, handleLogout }) => {
-  const moreOptions = [
-    // { id: 'catalogue', label: 'Catalogue', icon: '🖼️', description: 'Showcase work' },
-    // { id: 'reports', label: 'Reports & Analytics', icon: '📊', description: 'View business insights' },
-    // { id: 'settings', label: 'Settings', icon: '⚙️', description: 'Salon settings & preferences' },
-    // { id: 'subscription', label: 'Subscription', icon: '👑', description: 'Manage your plan' },
-    // { id: 'help', label: 'Help & Support', icon: '❓', description: 'Get help & tutorials' },
-  ];
-
-  return (
-    <div style={{ padding: '20px' }}>
-      {/* Profile Header */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '16px', 
-        marginBottom: '32px',
-        paddingBottom: '20px',
-        borderBottom: '1px solid #e9ecef'
-      }}>
-        <div 
-          className="owner-avatar"
-          style={{ 
-            background: salonData.primaryColor || '#3B82F6',
-            width: '60px',
-            height: '60px',
-            fontSize: '24px'
-          }}
-        >
-          {ownerData.name?.charAt(0) || 'O'}
-        </div>
-        <div>
-          <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '600' }}>
-            {ownerData.name}
-          </h3>
-          <p style={{ margin: 0, color: '#6c757d', fontSize: '14px' }}>
-            {salonData.name}
-          </p>
-          <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#adb5bd' }}>
-            Owner Account
-          </p>
-        </div>
+        <div className="salon-name">{salonData.name}</div>
+        <div className="owner-name">{ownerData.name}</div>
       </div>
 
-      {/* More Options Grid */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {moreOptions.map((option) => (
-          <div 
-            key={option.id}
-            className="content-card"
-            style={{ 
-              padding: '16px',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onClick={() => setActiveTab(option.id)}
-            onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateX(4px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.transform = 'translateX(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
+      <nav className="sidebar-nav">
+        {[
+          { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
+          { id: 'staff', label: 'Staff', icon: '👥' },
+          { id: 'services', label: 'Services', icon: '💼' },
+          { id: 'clients', label: 'Clients', icon: '👤' },
+        ].map((item) => (
+          <div
+            key={item.id}
+            className={`sidebar-nav-item ${activeTab === item.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(item.id)}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ 
-                width: '48px',
-                height: '48px',
-                background: '#f8f9fa',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px'
-              }}>
-                {option.icon}
-              </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600' }}>
-                  {option.label}
-                </h4>
-                <p style={{ margin: 0, fontSize: '13px', color: '#6c757d' }}>
-                  {option.description}
-                </p>
-              </div>
-              <div style={{ color: '#adb5bd', fontSize: '20px' }}>
-                →
-              </div>
-            </div>
+            <span className="sidebar-nav-icon">{item.icon}</span>
+            <span className="sidebar-nav-label">{item.label}</span>
           </div>
         ))}
-      </div>
+      </nav>
 
-      {/* Logout Button */}
-      <div style={{ marginTop: '32px', paddingTop: '20px', borderTop: '1px solid #e9ecef' }}>
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '100%',
-            padding: '14px',
-            background: '#fee2e2',
-            color: '#dc2626',
-            border: 'none',
-            borderRadius: '10px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
-        >
-          <FaSignOutAlt /> Logout Account
+      <div className="sidebar-footer">
+        <button onClick={handleLogout} className="logout-btn">
+          <FaSignOutAlt /> Logout
         </button>
-        <p style={{ 
-          textAlign: 'center', 
-          marginTop: '12px', 
-          fontSize: '11px', 
-          color: '#adb5bd' 
-        }}>
-          v1.0.0 • salonway.com
-        </p>
       </div>
-    </div>
+    </aside>
   );
-};
+
+  const MoreContent = ({ salonData, ownerData, setActiveTab, handleLogout }) => {
+    const moreOptions = [
+      // { id: 'catalogue', label: 'Catalogue', icon: '🖼️', description: 'Showcase work' },
+      // { id: 'reports', label: 'Reports & Analytics', icon: '📊', description: 'View business insights' },
+      // { id: 'settings', label: 'Settings', icon: '⚙️', description: 'Salon settings & preferences' },
+      // { id: 'subscription', label: 'Subscription', icon: '👑', description: 'Manage your plan' },
+      // { id: 'help', label: 'Help & Support', icon: '❓', description: 'Get help & tutorials' },
+    ];
+
+    return (
+      <div style={{ padding: '20px' }}>
+        {/* Profile Header */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '16px', 
+          marginBottom: '32px',
+          paddingBottom: '20px',
+          borderBottom: '1px solid #e9ecef'
+        }}>
+          <div 
+            className="owner-avatar"
+            style={{ 
+              background: salonData.primaryColor || '#3B82F6',
+              width: '60px',
+              height: '60px',
+              fontSize: '24px'
+            }}
+          >
+            {ownerData.name?.charAt(0) || 'O'}
+          </div>
+          <div>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '600' }}>
+              {ownerData.name}
+            </h3>
+            <p style={{ margin: 0, color: '#6c757d', fontSize: '14px' }}>
+              {salonData.name}
+            </p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#adb5bd' }}>
+              Owner Account
+            </p>
+          </div>
+        </div>
+
+        {/* More Options Grid */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {moreOptions.map((option) => (
+            <div 
+              key={option.id}
+              className="content-card"
+              style={{ 
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onClick={() => setActiveTab(option.id)}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateX(4px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateX(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ 
+                  width: '48px',
+                  height: '48px',
+                  background: '#f8f9fa',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '20px'
+                }}>
+                  {option.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600' }}>
+                    {option.label}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#6c757d' }}>
+                    {option.description}
+                  </p>
+                </div>
+                <div style={{ color: '#adb5bd', fontSize: '20px' }}>
+                  →
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Logout Button */}
+        <div style={{ marginTop: '32px', paddingTop: '20px', borderTop: '1px solid #e9ecef' }}>
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%',
+              padding: '14px',
+              background: '#fee2e2',
+              color: '#dc2626',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            <FaSignOutAlt /> Logout Account
+          </button>
+          <p style={{ 
+            textAlign: 'center', 
+            marginTop: '12px', 
+            fontSize: '11px', 
+            color: '#adb5bd' 
+          }}>
+            v1.0.0 • salonway.com
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   // Mobile Header Component (different from desktop)
   const MobileHeader = () => (
     <header className="owner-header">
@@ -433,11 +392,6 @@ const MoreContent = ({ salonData, ownerData, setActiveTab, handleLogout }) => {
       </div>
       
       <div className="owner-header-right">
-        {/* <button className="notification-btn">
-          <FaBell />
-          <span className="notification-badge"></span>
-        </button> */}
-        
         <div 
           className="owner-avatar"
           style={{ background: salonData.primaryColor || '#3B82F6' }}
@@ -469,11 +423,6 @@ const MoreContent = ({ salonData, ownerData, setActiveTab, handleLogout }) => {
             <div style={{ fontWeight: '500', fontSize: '14px' }}>{ownerData.name}</div>
             <div style={{ fontSize: '12px', color: '#6c757d' }}>{salonData.name}</div>
           </div>
-          
-          {/* <button className="notification-btn" style={{ position: 'relative' }}>
-            <FaBell />
-            <span className="notification-badge"></span>
-          </button> */}
           
           <div 
             className="owner-avatar"
@@ -507,60 +456,53 @@ const MoreContent = ({ salonData, ownerData, setActiveTab, handleLogout }) => {
         </div>
 
         {/* Main Content */}
-      <main>
-  {activeTab === 'dashboard' && (
-    <DashboardContent 
-      salonData={salonData} 
-      ownerData={ownerData}
-      salonId={salonData.id}
-      setActiveTab={setActiveTab}
-    />
-  )}
-  
-  {activeTab === 'staff' && (
-    <StaffContent salonId={salonData.id} ownerData={ownerData} />
-  )}
-  
-  {activeTab === 'services' && (
-    <ServicesContent 
-            salonId={salonData.id} 
-            salonData={salonData} 
-            ownerData={ownerData}
-          />
-  )}
-  
-  {activeTab === 'clients' && (
-      <ClientsContent 
-            salonId={salonData.id} 
-            salonData={salonData} 
-            ownerData={ownerData}
-          />
-  )}
-  
- {/* {activeTab === 'catalogue' && (
-  <CatalogueSettings 
-    salonData={salonData} 
-    ownerData={ownerData}
-    salonId={salonData.id}
-  />
-)} */}
-  {activeTab === 'reports' && (
-    <ReportsContent salonId={salonData.id} />
-  )}
-  
-  {activeTab === 'settings' && (
-    <SettingsContent salonData={salonData} ownerData={ownerData} />
-  )}
-  
-  {activeTab === 'more' && (
-    <MoreContent 
-      salonData={salonData} 
-      ownerData={ownerData} 
-      setActiveTab={setActiveTab}
-      handleLogout={handleLogout}
-    />
-  )}
-</main>
+        <main>
+          {activeTab === 'dashboard' && (
+            <DashboardContent 
+              salonData={salonData} 
+              ownerData={ownerData}
+              salonId={salonData.id}
+              setActiveTab={setActiveTab}
+            />
+          )}
+          
+          {activeTab === 'staff' && (
+            <StaffContent salonId={salonData.id} ownerData={ownerData} />
+          )}
+          
+          {activeTab === 'services' && (
+            <ServicesContent 
+              salonId={salonData.id} 
+              salonData={salonData} 
+              ownerData={ownerData}
+            />
+          )}
+          
+          {activeTab === 'clients' && (
+            <ClientsContent 
+              salonId={salonData.id} 
+              salonData={salonData} 
+              ownerData={ownerData}
+            />
+          )}
+          
+          {activeTab === 'reports' && (
+            <ReportsContent salonId={salonData.id} />
+          )}
+          
+          {activeTab === 'settings' && (
+            <SettingsContent salonData={salonData} ownerData={ownerData} />
+          )}
+          
+          {activeTab === 'more' && (
+            <MoreContent 
+              salonData={salonData} 
+              ownerData={ownerData} 
+              setActiveTab={setActiveTab}
+              handleLogout={handleLogout}
+            />
+          )}
+        </main>
 
         {/* Mobile Bottom Navigation (only on mobile) */}
         <div className="mobile-only">
@@ -582,23 +524,50 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
   const [liveFeed, setLiveFeed] = useState([]);
   const [recentWork, setRecentWork] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeLiveFeedTab, setActiveLiveFeedTab] = useState('all'); // Add this line
+  const [activeLiveFeedTab, setActiveLiveFeedTab] = useState('all');
   
   // Add filtered live feed based on active tab
   const filteredLiveFeed = activeLiveFeedTab === 'all' 
     ? liveFeed 
     : liveFeed.filter(item => item.type === activeLiveFeedTab);
-  useEffect(() => {
-    fetchDashboardData();
-    
-    // Check every 10 seconds for new data
-    const interval = setInterval(fetchDashboardData, 10000);
-    
-    return () => clearInterval(interval);
-  }, [salonId]);
 
-  // SIMPLE function - gets all data and filters manually
-  const fetchDashboardData = async () => {
+  // Helper function to get time ago
+  const getTimeAgo = useCallback((timestamp) => {
+    if (!timestamp) return 'Just now';
+    
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    } catch {
+      return 'Just now';
+    }
+  }, []);
+
+  // Helper function to get service icon
+  const getServiceIcon = useCallback((category) => {
+    if (!category) return '💼';
+    
+    const categoryLower = category.toLowerCase();
+    if (categoryLower.includes('hair')) return '💇';
+    if (categoryLower.includes('nail')) return '💅';
+    if (categoryLower.includes('beauty')) return '💄';
+    if (categoryLower.includes('spa')) return '🧖';
+    if (categoryLower.includes('makeup')) return '🎨';
+    if (categoryLower.includes('massage')) return '💆';
+    if (categoryLower.includes('bridal')) return '👰';
+    return '💼';
+  }, []);
+
+  const fetchDashboardData = useCallback(async () => {
     try {
       console.log("Fetching dashboard data for salon:", salonId);
       
@@ -671,7 +640,6 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
       });
       
       // Add work log activities
-      // In the fetchDashboardData function, update the work log activity creation:
       salonWorkLogs.forEach(log => {
         activities.push({
           id: `work_${log.id}`,
@@ -680,7 +648,7 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
           icon: getServiceIcon(log.serviceCategory),
           time: getTimeAgo(log.timestamp),
           timestamp: log.timestamp?.toDate?.() || new Date(),
-          price: log.servicePrice // Add this line
+          price: log.servicePrice
         });
       });
       
@@ -716,43 +684,16 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [salonId, getTimeAgo, getServiceIcon]);
 
-  // Helper function to get time ago
-  const getTimeAgo = (timestamp) => {
-    if (!timestamp) return 'Just now';
+  useEffect(() => {
+    fetchDashboardData();
     
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      const now = new Date();
-      const diffMs = now - date;
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-      
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      if (diffHours < 24) return `${diffHours}h ago`;
-      
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    } catch {
-      return 'Just now';
-    }
-  };
-
-  // Helper function to get service icon
-  const getServiceIcon = (category) => {
-    if (!category) return '💼';
+    // Check every 10 seconds for new data
+    const interval = setInterval(fetchDashboardData, 10000);
     
-    const categoryLower = category.toLowerCase();
-    if (categoryLower.includes('hair')) return '💇';
-    if (categoryLower.includes('nail')) return '💅';
-    if (categoryLower.includes('beauty')) return '💄';
-    if (categoryLower.includes('spa')) return '🧖';
-    if (categoryLower.includes('makeup')) return '🎨';
-    if (categoryLower.includes('massage')) return '💆';
-    if (categoryLower.includes('bridal')) return '👰';
-    return '💼';
-  };
+    return () => clearInterval(interval);
+  }, [fetchDashboardData]);
 
   // Refresh button function
   const refreshDashboard = () => {
@@ -794,15 +735,6 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
       label: 'New',
       onClick: () => alert('Forms management coming soon!')
     },
-    // {
-    //   title: 'Gallery Views',
-    //   value: dashboardStats.galleryViews,
-    //   icon: '👀',
-    //   color: '#EF4444',
-    //   bgColor: '#FEE2E2',
-    //   label: 'Today',
-    //   onClick: () => setActiveTab && setActiveTab('gallery')
-    // }
   ];
 
   return (
@@ -828,382 +760,217 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
                 <div className="stat-value">{stat.value}</div>
                 {stat.label && <small style={{ color: '#6c757d' }}>{stat.label}</small>}
               </div>
-              {/* <div 
-                className="stat-icon"
-                style={{ 
-                  background: stat.bgColor,
-                  color: stat.color,
-                  fontSize: '24px'
-                }}
-              >
-                {stat.icon}
-              </div> */}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Live Feed Section */}
-     {/* Live Feed Section with Tabs */}
-<div className="content-card" style={{ margin: '0 20px 20px' }}>
- 
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-        <span style={{ fontSize: '20px' }}>📡</span> Live Feed
-      </h3>
-      {/* {liveFeed.length > 0 && (
-        <span style={{
-          fontSize: '12px',
-          background: '#3B82F6',
-          color: 'white',
-          padding: '2px 8px',
-          borderRadius: '12px',
-          fontWeight: '500'
-        }}>
-          {liveFeed.length} activities
-        </span>
-      )} */}
-    </div>
-    <button 
-      onClick={refreshDashboard}
-      style={{
-        padding: '6px 12px',
-        background: '#f1f5f9',
-        border: '1px solid #e2e8f0',
-        borderRadius: '6px',
-        fontSize: '12px',
-        color: '#475569',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px'
-      }}
-    >
-      🔄 Refresh
-    </button>
-  </div>
-  
-  {/* Tabs Navigation */}
-  <div style={{ 
-    display: 'flex', 
-    borderBottom: '1px solid #e9ecef',
-    marginBottom: '16px',
-    overflowX: 'auto'
-  }}>
-    {[
-      { id: 'all', label: 'All', icon: '📡' },
-      { id: 'service', label: 'Services', icon: '💼', count: liveFeed.filter(item => item.type === 'service').length },
-      { id: 'form', label: 'Forms', icon: '📝', count: liveFeed.filter(item => item.type === 'form').length },
-      { id: 'clock', label: 'Attendance', icon: '⏰', count: liveFeed.filter(item => item.type === 'clock').length }
-    ].map(tab => {
-      const isActive = activeLiveFeedTab === tab.id;
-      return (
-        <button
-          key={tab.id}
-          onClick={() => setActiveLiveFeedTab(tab.id)}
-          style={{
-            padding: '12px 16px',
-            background: 'none',
-            border: 'none',
-            borderBottom: `2px solid ${isActive ? 'var(--primary-color)' : 'transparent'}`,
-            color: isActive ? 'var(--primary-color)' : '#6c757d',
-            fontSize: '14px',
-            fontWeight: isActive ? '600' : '500',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.2s'
-          }}
-        >
-          <span style={{ fontSize: '16px' }}>{tab.icon}</span>
-          {tab.label}
-          {tab.count > 0 && (
-            <span style={{
-              fontSize: '11px',
-              background: isActive ? 'var(--primary-color)' : '#e9ecef',
-              color: isActive ? 'white' : '#6c757d',
-              padding: '1px 6px',
-              borderRadius: '10px',
-              marginLeft: '4px'
-            }}>
-              {tab.count}
-            </span>
-          )}
-        </button>
-      );
-    })}
-  </div>
-  
-  {/* Activities List */}
-  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-    {loading ? (
-      <div style={{ textAlign: 'center', padding: '20px' }}>
-        <div className="loading-spinner" style={{ width: '30px', height: '30px', margin: '0 auto 10px' }}></div>
-        <p style={{ color: '#6c757d', fontSize: '14px' }}>Loading live feed...</p>
-      </div>
-    ) : filteredLiveFeed.length === 0 ? (
-      <div style={{ textAlign: 'center', padding: '30px 20px' }}>
-        <div style={{ fontSize: '40px', color: '#e2e8f0', marginBottom: '12px' }}>
-          {activeLiveFeedTab === 'service' ? '💼' :
-           activeLiveFeedTab === 'form' ? '📝' :
-           activeLiveFeedTab === 'clock' ? '⏰' : '📡'}
-        </div>
-        <p style={{ color: '#6c757d', fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
-          {activeLiveFeedTab === 'all' ? 'No activity yet' :
-           activeLiveFeedTab === 'service' ? 'No services logged' :
-           activeLiveFeedTab === 'form' ? 'No form submissions' :
-           'No attendance records'}
-        </p>
-        <p style={{ color: '#adb5bd', fontSize: '12px' }}>
-          {activeLiveFeedTab === 'all' ? 'Activity will appear when staff clock in, log work, or clients submit forms' :
-           activeLiveFeedTab === 'service' ? 'Services will appear when staff log completed work' :
-           activeLiveFeedTab === 'form' ? 'Forms will appear when clients submit consultation forms' :
-           'Attendance records will appear when staff clock in or out'}
-        </p>
-      </div>
-    ) : (
-      filteredLiveFeed.map((item) => {
-        let activityColor = '#3B82F6';
-        if (item.type === 'service') activityColor = '#10B981';
-        else if (item.type === 'form') activityColor = '#F59E0B';
-        else if (item.type === 'clock') activityColor = '#6366F1';
-        
-        return (
-          <div 
-            key={item.id} 
-            className="activity-item"
-            style={{ 
-              padding: '12px 0',
-              borderBottom: '1px solid #f1f3f4',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '12px',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f8fafc';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <div style={{ 
-              width: '36px',
-              height: '36px',
-              background: `${activityColor}15`,
-              borderRadius: '10px',
+      {/* Live Feed Section with Tabs */}
+      <div className="content-card" style={{ margin: '0 20px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <span style={{ fontSize: '20px' }}>📡</span> Live Feed
+            </h3>
+          </div>
+          <button 
+            onClick={refreshDashboard}
+            style={{
+              padding: '6px 12px',
+              background: '#f1f5f9',
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              fontSize: '12px',
+              color: '#475569',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              flexShrink: 0,
-              color: activityColor
-            }}>
-              {item.icon}
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ 
-                margin: '0 0 4px 0', 
-                fontSize: '14px', 
-                fontWeight: '500',
-                color: '#1a1a1a'
-              }}>
-                {item.message}
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <p style={{ 
-                  margin: 0, 
-                  fontSize: '12px', 
-                  color: '#64748b'
-                }}>
-                  {item.time}
-                </p>
-                <span style={{
-                  fontSize: '10px',
-                  padding: '2px 6px',
-                  background: `${activityColor}20`,
-                  color: activityColor,
-                  borderRadius: '10px',
-                  fontWeight: '500'
-                }}>
-                  {item.type === 'service' ? 'Service' : 
-                   item.type === 'form' ? 'Form' : 
-                   item.type === 'clock' ? 'Attendance' : 'Activity'}
-                </span>
-                {item.type === 'service' && item.price && (
+              gap: '4px'
+            }}
+          >
+            🔄 Refresh
+          </button>
+        </div>
+        
+        {/* Tabs Navigation */}
+        <div style={{ 
+          display: 'flex', 
+          borderBottom: '1px solid #e9ecef',
+          marginBottom: '16px',
+          overflowX: 'auto'
+        }}>
+          {[
+            { id: 'all', label: 'All', icon: '📡' },
+            { id: 'service', label: 'Services', icon: '💼', count: liveFeed.filter(item => item.type === 'service').length },
+            { id: 'form', label: 'Forms', icon: '📝', count: liveFeed.filter(item => item.type === 'form').length },
+            { id: 'clock', label: 'Attendance', icon: '⏰', count: liveFeed.filter(item => item.type === 'clock').length }
+          ].map(tab => {
+            const isActive = activeLiveFeedTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveLiveFeedTab(tab.id)}
+                style={{
+                  padding: '12px 16px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: `2px solid ${isActive ? 'var(--primary-color)' : 'transparent'}`,
+                  color: isActive ? 'var(--primary-color)' : '#6c757d',
+                  fontSize: '14px',
+                  fontWeight: isActive ? '600' : '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span style={{ fontSize: '16px' }}>{tab.icon}</span>
+                {tab.label}
+                {tab.count > 0 && (
                   <span style={{
-                    fontSize: '10px',
-                    padding: '2px 6px',
-                    background: '#10B98120',
-                    color: '#10B981',
+                    fontSize: '11px',
+                    background: isActive ? 'var(--primary-color)' : '#e9ecef',
+                    color: isActive ? 'white' : '#6c757d',
+                    padding: '1px 6px',
                     borderRadius: '10px',
-                    fontWeight: '600'
+                    marginLeft: '4px'
                   }}>
-                    R{item.price}
+                    {tab.count}
                   </span>
                 )}
+              </button>
+            );
+          })}
+        </div>
+        
+        {/* Activities List */}
+        <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <div className="loading-spinner" style={{ width: '30px', height: '30px', margin: '0 auto 10px' }}></div>
+              <p style={{ color: '#6c757d', fontSize: '14px' }}>Loading live feed...</p>
+            </div>
+          ) : filteredLiveFeed.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+              <div style={{ fontSize: '40px', color: '#e2e8f0', marginBottom: '12px' }}>
+                {activeLiveFeedTab === 'service' ? '💼' :
+                 activeLiveFeedTab === 'form' ? '📝' :
+                 activeLiveFeedTab === 'clock' ? '⏰' : '📡'}
               </div>
+              <p style={{ color: '#6c757d', fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
+                {activeLiveFeedTab === 'all' ? 'No activity yet' :
+                 activeLiveFeedTab === 'service' ? 'No services logged' :
+                 activeLiveFeedTab === 'form' ? 'No form submissions' :
+                 'No attendance records'}
+              </p>
+              <p style={{ color: '#adb5bd', fontSize: '12px' }}>
+                {activeLiveFeedTab === 'all' ? 'Activity will appear when staff clock in, log work, or clients submit forms' :
+                 activeLiveFeedTab === 'service' ? 'Services will appear when staff log completed work' :
+                 activeLiveFeedTab === 'form' ? 'Forms will appear when clients submit consultation forms' :
+                 'Attendance records will appear when staff clock in or out'}
+              </p>
             </div>
-          </div>
-        );
-      })
-    )}
-  </div>
-</div>
-
-      {/* Recent Work Section */}
-      {/* {recentWork.length > 0 ? (
-        <div className="content-card" style={{ margin: '0 20px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              <span style={{ fontSize: '20px' }}>💼</span> Today's Services
-              <span style={{ 
-                fontSize: '12px',
-                background: '#10B981',
-                color: 'white',
-                padding: '2px 8px',
-                borderRadius: '12px'
-              }}>
-                {recentWork.length}
-              </span>
-            </h3>
-            <div style={{ fontSize: '14px', color: '#10B981', fontWeight: '600' }}>
-              Total: R{dashboardStats.todayRevenue}
-            </div>
-          </div>
-          
-          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-            {recentWork.map((work) => {
-              const timeAgo = getTimeAgo(work.timestamp);
+          ) : (
+            filteredLiveFeed.map((item) => {
+              let activityColor = '#3B82F6';
+              if (item.type === 'service') activityColor = '#10B981';
+              else if (item.type === 'form') activityColor = '#F59E0B';
+              else if (item.type === 'clock') activityColor = '#6366F1';
               
               return (
                 <div 
-                  key={work.id}
+                  key={item.id} 
                   className="activity-item"
                   style={{ 
                     padding: '12px 0',
                     borderBottom: '1px solid #f1f3f4',
                     display: 'flex',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     gap: '12px',
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f0fdf4';
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
                   <div style={{ 
-                    width: '40px',
-                    height: '40px',
-                    background: '#d1fae5',
+                    width: '36px',
+                    height: '36px',
+                    background: `${activityColor}15`,
                     borderRadius: '10px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '20px',
+                    fontSize: '18px',
                     flexShrink: 0,
-                    color: '#065f46'
+                    color: activityColor
                   }}>
-                    {getServiceIcon(work.serviceCategory)}
+                    {item.icon}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                    <p style={{ 
+                      margin: '0 0 4px 0', 
+                      fontSize: '14px', 
+                      fontWeight: '500',
+                      color: '#1a1a1a'
+                    }}>
+                      {item.message}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <p style={{ 
                         margin: 0, 
-                        fontSize: '14px', 
-                        fontWeight: '600',
-                        color: '#1a1a1a'
+                        fontSize: '12px', 
+                        color: '#64748b'
                       }}>
-                        {work.serviceName}
+                        {item.time}
                       </p>
-                      <p style={{ 
-                        margin: 0, 
-                        fontSize: '16px', 
-                        color: '#10B981',
-                        fontWeight: '700'
+                      <span style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: `${activityColor}20`,
+                        color: activityColor,
+                        borderRadius: '10px',
+                        fontWeight: '500'
                       }}>
-                        R{work.servicePrice}
-                      </p>
-                    </div>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ 
-                          fontSize: '12px', 
-                          color: '#475569',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
+                        {item.type === 'service' ? 'Service' : 
+                         item.type === 'form' ? 'Form' : 
+                         item.type === 'clock' ? 'Attendance' : 'Activity'}
+                      </span>
+                      {item.type === 'service' && item.price && (
+                        <span style={{
+                          fontSize: '10px',
+                          padding: '2px 6px',
+                          background: '#10B98120',
+                          color: '#10B981',
+                          borderRadius: '10px',
+                          fontWeight: '600'
                         }}>
-                          <strong>By</strong> {work.staffName}
+                          R{item.price}
                         </span>
-                        {work.client && (
-                          <span style={{ 
-                            fontSize: '12px', 
-                            color: '#475569',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}>
-                            👥 {work.client}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ 
-                          fontSize: '11px', 
-                          color: '#64748b'
-                        }}>
-                          {timeAgo}
-                        </span>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
               );
-            })}
-          </div>
+            })
+          )}
         </div>
-      ) : !loading && (
-        <div className="content-card" style={{ margin: '0 20px 20px' }}>
-          <div style={{ textAlign: 'center', padding: '30px 20px' }}>
-            <div style={{ fontSize: '40px', color: '#e2e8f0', marginBottom: '12px' }}>
-              💼
-            </div>
-            <p style={{ color: '#6c757d', fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
-              No services logged today
-            </p>
-            <p style={{ color: '#adb5bd', fontSize: '12px' }}>
-              When staff log work, it will appear here
-            </p>
-          </div>
-        </div>
-      )} */}
+      </div>
     </>
   );
 };
 
-
-
-
-
 const ReportsContent = ({ salonId }) => {
   const [workLogs, setWorkLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [reportsLoading, setReportsLoading] = useState(true);
   const [dateRange, setDateRange] = useState('today');
 
-  useEffect(() => {
-    fetchWorkLogs();
-  }, [dateRange]);
-
-  const fetchWorkLogs = async () => {
+  const fetchWorkLogs = useCallback(async () => {
     try {
       let q;
       const today = new Date().toISOString().split('T')[0];
@@ -1234,9 +1001,13 @@ const ReportsContent = ({ salonId }) => {
     } catch (error) {
       console.error('Error fetching work logs:', error);
     } finally {
-      setLoading(false);
+      setReportsLoading(false);
     }
-  };
+  }, [salonId, dateRange]);
+
+  useEffect(() => {
+    fetchWorkLogs();
+  }, [fetchWorkLogs]);
 
   const calculateTotalRevenue = () => {
     return workLogs.reduce((sum, log) => sum + (log.servicePrice || 0), 0);
@@ -1287,7 +1058,7 @@ const ReportsContent = ({ salonId }) => {
   );
 };
 
-// Staff Content Component - ULTRA SIMPLE MVP
+// Staff Content Component
 const StaffContent = ({ salonId, ownerData }) => {
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1300,18 +1071,12 @@ const StaffContent = ({ salonId, ownerData }) => {
   const [staffClockStatus, setStaffClockStatus] = useState({});
   const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    fetchStaff();
-    fetchClockStatus();
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   }, []);
 
- const showToast = (message, type = 'success') => {
-  setToast({ message, type });
-  setTimeout(() => setToast(null), 3000);
-};
-
-
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     try {
       const staffSnapshot = await getDocs(collection(db, 'salons', salonId, 'staff'));
       const staffList = staffSnapshot.docs.map(doc => ({
@@ -1325,9 +1090,9 @@ const StaffContent = ({ salonId, ownerData }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [salonId, showToast]);
 
-  const fetchClockStatus = async () => {
+  const fetchClockStatus = useCallback(async () => {
     try {
       const clockQuery = query(
         collection(db, 'clockRecords'),
@@ -1351,7 +1116,12 @@ const StaffContent = ({ salonId, ownerData }) => {
     } catch (error) {
       console.error('Error fetching clock status:', error);
     }
-  };
+  }, [salonId]);
+
+  useEffect(() => {
+    fetchStaff();
+    fetchClockStatus();
+  }, [fetchStaff, fetchClockStatus]);
 
   const handleClockInStaff = async (staffMember) => {
     try {
@@ -1459,16 +1229,13 @@ const StaffContent = ({ salonId, ownerData }) => {
         createdAt: serverTimestamp()
       };
 
-      await addDoc(collection(db, 'salons', salonId, 'staff'), staffData);
+      await setDoc(doc(collection(db, 'salons', salonId, 'staff')), staffData);
       await fetchStaff();
       
       setNewStaff({ name: '', phone: '', email: '' });
       setShowAddForm(false);
       
       showToast('Staff added successfully!', 'success');
-      
-      // Copy link automatically
-     
       
     } catch (error) {
       console.error('Error adding staff:', error);
@@ -1477,7 +1244,6 @@ const StaffContent = ({ salonId, ownerData }) => {
   };
 
   const handleDeleteStaff = async (staffId, staffName) => {
-    // Custom confirmation modal instead of window.confirm
     setToast({
       message: `Remove ${staffName}?`,
       type: 'warning',
@@ -1488,7 +1254,7 @@ const StaffContent = ({ salonId, ownerData }) => {
             await deleteDoc(doc(db, 'salons', salonId, 'staff', staffId));
             await fetchStaff();
             showToast(`${staffName} has been removed`, 'success');
-            setToast(null); // Clear the confirmation toast
+            setToast(null);
           } catch (error) {
             console.error('Error deleting staff:', error);
             showToast('Failed to delete staff', 'error');
@@ -1778,7 +1544,7 @@ const StaffContent = ({ salonId, ownerData }) => {
       </div>
 
       {/* Toast Notifications */}
-      {toast && (
+      {toast && !toast.action && (
         <ToastNotification
           message={toast.message}
           type={toast.type}
@@ -1863,10 +1629,6 @@ const StaffContent = ({ salonId, ownerData }) => {
     </>
   );
 };
-
-
-
-
 
 // Settings Content Component
 const SettingsContent = ({ salonData, ownerData }) => {

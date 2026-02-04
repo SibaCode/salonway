@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   doc, 
@@ -35,7 +35,6 @@ const Toast = ({ message, type, onClose }) => {
     }
   };
 
- 
   return (
     <div className="toast-notification">
       <span className="toast-icon">{getIcon()}</span>
@@ -81,7 +80,6 @@ const StaffDashboard = () => {
   });
   
   const [clientForms, setClientForms] = useState([]);
-  // const [currentClientForm, setCurrentClientForm] = useState(null);
 
   const showToast = (message, type = 'info') => {
     setToast({ message, type, id: Date.now() });
@@ -91,80 +89,49 @@ const StaffDashboard = () => {
     setToast(null);
   };
 
-  // Find staff by code
-  useEffect(() => {
-    const findStaff = async () => {
-      try {
-        const salonsSnapshot = await getDocs(collection(db, 'salons'));
-        
-        for (const salonDoc of salonsSnapshot.docs) {
-          const salonId = salonDoc.id;
-          const staffQuery = query(
-            collection(db, 'salons', salonId, 'staff'),
-            where('linkCode', '==', code)
-          );
-          
-          const staffSnapshot = await getDocs(staffQuery);
-          
-          if (!staffSnapshot.empty) {
-            const staffData = {
-              id: staffSnapshot.docs[0].id,
-              ...staffSnapshot.docs[0].data(),
-              salonId: salonId
-            };
-            
-            const salonSnap = await getDoc(doc(db, 'salons', salonId));
-            if (salonSnap.exists()) {
-              setStaff(staffData);
-              setSalon({ id: salonSnap.id, ...salonSnap.data() });
-              await checkClockStatus(staffData.id, salonId);
-              loadServices(salonId);
-              listenToClientForms(salonId);
-              loadTodaysWork(staffData.id, salonId);
-              loadMyForms(staffData.id, salonId);
-              loadStats(staffData.id, salonId);
-              
-              showToast(`Welcome back, ${staffData.name}!`, 'success');
-              break;
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        showToast('Failed to load dashboard. Please try again.', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (code) findStaff();
-  }, [code, 
-  checkClockStatus, 
-  listenToClientForms, 
-  loadMyForms, 
-  loadServices, 
-  loadTodaysWork, 
-  loadStats]);
-
-  // Load services
-  const loadServices = async (salonId) => {
+  // Format time
+  const formatTime = useCallback((timestamp) => {
+    if (!timestamp) return '--:--';
     try {
-      const servicesSnapshot = await getDocs(
-        collection(db, 'salons', salonId, 'services')
-      );
-      const servicesList = servicesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setServices(servicesList);
-    } catch (error) {
-      console.error('Error loading services:', error);
-      showToast('Failed to load services', 'error');
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '--:--';
     }
-  };
+  }, []);
+
+  // Format date
+  const formatDate = useCallback((timestamp) => {
+    if (!timestamp) return '--:--';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } catch {
+      return '--:--';
+    }
+  }, []);
+
+  // Format full date
+  const formatFullDate = useCallback((timestamp) => {
+    if (!timestamp) return '--/--/----';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      return '--/--/----';
+    }
+  }, []);
 
   // Check clock status
-  const checkClockStatus = async (staffId, salonId) => {
+  const checkClockStatus = useCallback(async (staffId, salonId) => {
     try {
       const q = query(
         collection(db, 'clockRecords'),
@@ -188,46 +155,49 @@ const StaffDashboard = () => {
       console.error('Error checking status:', error);
       showToast('Error checking clock status', 'error');
     }
-  };
+  }, []);
 
-  // Load today's work - SIMPLIFIED
-  const loadTodaysWork = async (staffId, salonId) => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Simple query that doesn't need composite index
-      const workQuery = query(
-        collection(db, 'workLogs'),
-        where('staffId', '==', staffId)
-      );
-      
-      const snapshot = await getDocs(workQuery);
-      const allWork = snapshot.docs.map(doc => ({
+  // Listen for NEW client forms - SIMPLIFIED
+  const listenToClientForms = useCallback((salonId) => {
+    const q = query(
+      collection(db, 'consultations'),
+      where('salonId', '==', salonId)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const forms = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       
-      // Filter in JavaScript
-      const todayWork = allWork.filter(work => 
-        work.salonId === salonId && work.date === today
+      // Filter new forms in JavaScript
+      const newForms = forms.filter(form => 
+        !form.status || form.status === 'new'
       );
       
-      // Sort by timestamp
-      todayWork.sort((a, b) => {
-        const dateA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp || 0);
-        const dateB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp || 0);
+      // Sort by createdAt
+      newForms.sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
         return dateB - dateA;
       });
       
-      setTodaysWork(todayWork);
-    } catch (error) {
-      console.error('Error loading work:', error);
-      showToast('Error loading work log', 'error');
-    }
-  };
+      setClientForms(newForms);
+      
+      if (newForms.length > clientForms.length && clientForms.length > 0) {
+        const newForm = newForms[0];
+        showToast(`New client form from ${newForm.clientName || 'a client'}`, 'info');
+      }
+    }, (error) => {
+      console.error("Listener error:", error);
+      showToast('Error loading client forms', 'error');
+    });
+
+    return unsubscribe;
+  }, [clientForms.length]);
 
   // Load forms served by this staff - SIMPLIFIED
-  const loadMyForms = async (staffId, salonId) => {
+  const loadMyForms = useCallback(async (staffId, salonId) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
@@ -266,10 +236,63 @@ const StaffDashboard = () => {
       console.error('Error loading my forms:', error);
       showToast('Error loading your forms', 'error');
     }
-  };
+  }, []);
+
+  // Load services
+  const loadServices = useCallback(async (salonId) => {
+    try {
+      const servicesSnapshot = await getDocs(
+        collection(db, 'salons', salonId, 'services')
+      );
+      const servicesList = servicesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setServices(servicesList);
+    } catch (error) {
+      console.error('Error loading services:', error);
+      showToast('Failed to load services', 'error');
+    }
+  }, []);
+
+  // Load today's work - SIMPLIFIED
+  const loadTodaysWork = useCallback(async (staffId, salonId) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Simple query that doesn't need composite index
+      const workQuery = query(
+        collection(db, 'workLogs'),
+        where('staffId', '==', staffId)
+      );
+      
+      const snapshot = await getDocs(workQuery);
+      const allWork = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      // Filter in JavaScript
+      const todayWork = allWork.filter(work => 
+        work.salonId === salonId && work.date === today
+      );
+      
+      // Sort by timestamp
+      todayWork.sort((a, b) => {
+        const dateA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp || 0);
+        const dateB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp || 0);
+        return dateB - dateA;
+      });
+      
+      setTodaysWork(todayWork);
+    } catch (error) {
+      console.error('Error loading work:', error);
+      showToast('Error loading work log', 'error');
+    }
+  }, []);
 
   // Load stats
-  const loadStats = async (staffId, salonId) => {
+  const loadStats = useCallback(async (staffId, salonId) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
@@ -331,87 +354,56 @@ const StaffDashboard = () => {
     } catch (error) {
       console.error('Error loading stats:', error);
     }
-  };
+  }, []);
 
-  // Listen for NEW client forms - SIMPLIFIED
-  const listenToClientForms = (salonId) => {
-    const q = query(
-      collection(db, 'consultations'),
-      where('salonId', '==', salonId)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const forms = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      // Filter new forms in JavaScript
-      const newForms = forms.filter(form => 
-        !form.status || form.status === 'new'
-      );
-      
-      // Sort by createdAt
-      newForms.sort((a, b) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
-        return dateB - dateA;
-      });
-      
-      setClientForms(newForms);
-      
-      if (newForms.length > clientForms.length && clientForms.length > 0) {
-        const newForm = newForms[0];
-        showToast(`New client form from ${newForm.clientName || 'a client'}`, 'info');
+  // Find staff by code
+  useEffect(() => {
+    const findStaff = async () => {
+      try {
+        const salonsSnapshot = await getDocs(collection(db, 'salons'));
+        
+        for (const salonDoc of salonsSnapshot.docs) {
+          const salonId = salonDoc.id;
+          const staffQuery = query(
+            collection(db, 'salons', salonId, 'staff'),
+            where('linkCode', '==', code)
+          );
+          
+          const staffSnapshot = await getDocs(staffQuery);
+          
+          if (!staffSnapshot.empty) {
+            const staffData = {
+              id: staffSnapshot.docs[0].id,
+              ...staffSnapshot.docs[0].data(),
+              salonId: salonId
+            };
+            
+            const salonSnap = await getDoc(doc(db, 'salons', salonId));
+            if (salonSnap.exists()) {
+              setStaff(staffData);
+              setSalon({ id: salonSnap.id, ...salonSnap.data() });
+              await checkClockStatus(staffData.id, salonId);
+              await loadServices(salonId);
+              await listenToClientForms(salonId);
+              await loadTodaysWork(staffData.id, salonId);
+              await loadMyForms(staffData.id, salonId);
+              await loadStats(staffData.id, salonId);
+              
+              showToast(`Welcome back, ${staffData.name}!`, 'success');
+              break;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('Failed to load dashboard. Please try again.', 'error');
+      } finally {
+        setLoading(false);
       }
-    }, (error) => {
-      console.error("Listener error:", error);
-      showToast('Error loading client forms', 'error');
-    });
+    };
 
-    return unsubscribe;
-  };
-
-  // Format time
-  const formatTime = (timestamp) => {
-    if (!timestamp) return '--:--';
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '--:--';
-    }
-  };
-
-  // Format date
-  const formatDate = (timestamp) => {
-    if (!timestamp) return '--:--';
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleTimeString([], { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      });
-    } catch {
-      return '--:--';
-    }
-  };
-
-  // Format full date
-  const formatFullDate = (timestamp) => {
-    if (!timestamp) return '--/--/----';
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return '--/--/----';
-    }
-  };
+    if (code) findStaff();
+  }, [code, checkClockStatus, listenToClientForms, loadMyForms, loadServices, loadTodaysWork, loadStats]);
 
   // CLOCK IN
   const handleClockIn = async () => {
@@ -567,7 +559,6 @@ const StaffDashboard = () => {
         reviewedAt: serverTimestamp()
       });
       
-      // setCurrentClientForm(null);
       setShowFormDetails(null);
       
       // Update local state
@@ -988,16 +979,6 @@ const StaffDashboard = () => {
             </div>
             
             <div className="stats-grid-detailed">
-              {/* <div className="stat-card">
-                <div className="stat-card-icon" style={{ background: '#DCFCE7', color: '#166534' }}>
-                  💰
-                </div>
-                <div className="stat-card-content">
-                  <div className="stat-card-label">Total Earnings</div>
-                  <div className="stat-card-value">R{stats.totalEarnings}</div>
-                </div>
-              </div> */}
-              
               <div className="stat-card">
                 <div className="stat-card-icon" style={{ background: '#FEF3C7', color: '#92400E' }}>
                   👥
