@@ -3,8 +3,6 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// EXAMPLE CONFIGURATION - DO NOT USE IN PRODUCTION
-// Copy this to firebase.js and fill with your own values
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY_HERE",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
