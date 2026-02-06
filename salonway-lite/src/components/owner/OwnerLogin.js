@@ -18,7 +18,14 @@ const VALID_CREDENTIALS = [
     salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg',
     salonName: 'Client Salon',
     ownerName: 'Salon Owner'
-  }
+  },
+  {
+    email: 'thebeautyclub@gmail.com',
+    password: 'KNTNA1!R7w@l',
+    salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg',
+    salonName: 'The Beauty Club',
+    ownerName: 'Kat Moeti'
+  },
 ];
 
 const OwnerLogin = () => {

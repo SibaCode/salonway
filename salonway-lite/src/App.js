@@ -6,12 +6,23 @@ import OwnerDashboard from './components/owner/OwnerDashboard';
 import StaffDashboard from './components/staff/StaffDashboard';
 import ClientConsultation from './components/client/ClientConsultation';
 import CataloguePage from './components/client/CataloguePage';
-
+import AdminLogin from './components/admin/AdminLogin';
+import AdminDashboard from './components/admin/AdminDashboard';
 function App() {
   return (
     <div className="App">
       <Routes>
         {/* Public Routes */}
+          {/* <Route path="/admin/login" element={
+            !isAdmin ? <AdminLogin /> : <Navigate to="/admin" />
+          } />
+          
+          <Route path="/admin" element={
+            isAdmin ? <AdminDashboard /> : <Navigate to="/admin/login" />
+          } /> */}
+               <Route path="/admin/login" element={<AdminDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        
         <Route path="/catalogue/:salonId" element={<CataloguePage />} />
         <Route path="/staff/:code" element={<StaffDashboard />} />
         <Route path="/client/:salonId" element={<ClientConsultation />} />

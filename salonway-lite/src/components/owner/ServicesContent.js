@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect ,useCallback} from 'react';
 import { 
   collection, 
   getDocs, 
@@ -12,8 +12,9 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 
+// import { db } from './firebase'; // Adjust this import based on your setup
+
 const ServicesContent = ({ salonId, salonData = {}, ownerData = {} }) => {
-  // State Management
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -23,22 +24,8 @@ const ServicesContent = ({ salonId, salonData = {}, ownerData = {} }) => {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [toast, setToast] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [viewMode, setViewMode] = useState('manage');
-
-  // Form State
-  const [newService, setNewService] = useState({
-    name: '',
-    category: '',
-    description: '',
-    price: '',
-    duration: '30',
-    imageUrl: '',
-    isActive: true
-  });
-
-  // Catalogue Settings
+  
+  // Catalogue settings
   const [catalogueSettings, setCatalogueSettings] = useState({
     showContactInfo: true,
     showBusinessHours: true,
@@ -60,301 +47,255 @@ const ServicesContent = ({ salonId, salonData = {}, ownerData = {} }) => {
     logoUrl: salonData.logoUrl || ''
   });
 
-  // ======================
-  // UTILITY FUNCTIONS
-  // ======================
+  const [newService, setNewService] = useState({
+    name: '',
+    category: '',
+    description: '',
+    price: '',
+    duration: '30',
+    imageUrl: '',
+    isActive: true
+  });
 
-  // Toast Notification
-  const showToast = useCallback((message, type = 'success') => {
-    setToast({ message, type });
-    
-    if (window.toastTimeout) {
-      clearTimeout(window.toastTimeout);
-    }
-    
-    window.toastTimeout = setTimeout(() => {
-      setToast(null);
-    }, 3000);
-  }, []);
+  // View mode: 'manage' or 'preview'
+  const [viewMode, setViewMode] = useState('manage');
 
-  // Error Logger
-  const logError = (error, context) => {
-    console.group('Service Management Error');
-    console.log('Context:', context);
-    console.log('Error:', error);
-    console.log('Code:', error.code);
-    console.log('Message:', error.message);
-    console.log('Timestamp:', new Date().toISOString());
-    console.groupEnd();
-  };
+  // Simple toast function
+const showToast = useCallback((message, type = 'success') => {
+  setToast({ message, type });
+  setTimeout(() => setToast(null), 3000);
+}, []);
 
-  // Network Status
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      if (toast?.message?.includes('offline')) {
-        showToast('Back online!', 'success');
-      }
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-      showToast('You are offline. Some features may not work.', 'warning');
-    };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [toast, showToast]);
-
-  // ======================
-  // DATA FETCHING
-  // ======================
-
-  const fetchServices = useCallback(async () => {
-    if (!isOnline) {
-      showToast('Cannot load services while offline', 'warning');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const servicesSnapshot = await getDocs(collection(db, 'salons', salonId, 'services'));
-      const servicesList = servicesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setServices(servicesList);
-      
-      // Extract unique categories
-      const uniqueCategories = [...new Set(servicesList.map(service => service.category).filter(Boolean))];
-      setCategories(uniqueCategories);
-      
-      // Set default category if none exists
-      if (uniqueCategories.length > 0 && !newService.category) {
-        setNewService(prev => ({ ...prev, category: uniqueCategories[0] }));
-      }
-    } catch (error) {
-      logError(error, 'fetchServices');
-      showToast('Failed to load services. Please try again.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [salonId, isOnline, showToast]);
-
-  const loadCatalogueSettings = useCallback(async () => {
-    if (!isOnline) return;
-
-    try {
-      const settingsDoc = await getDoc(doc(db, 'salons', salonId, 'catalogue', 'settings'));
-      if (settingsDoc.exists()) {
-        setCatalogueSettings(prev => ({
-          ...prev,
-          ...settingsDoc.data()
-        }));
-      }
-    } catch (error) {
-      console.log('No catalogue settings found, using defaults');
-    }
-  }, [salonId, isOnline]);
-
-  useEffect(() => {
-    fetchServices();
-    loadCatalogueSettings();
-  }, [fetchServices, loadCatalogueSettings]);
-
-  // ======================
-  // CATEGORY MANAGEMENT
-  // ======================
-
+  // Filter services based on active category
   const filteredServices = activeCategory === 'All' 
     ? services 
     : services.filter(service => service.category === activeCategory);
-
-  const handleAddCategory = () => {
-    const categoryName = newCategoryName.trim();
+const fetchServices = useCallback(async () => {
+  try {
+    const servicesSnapshot = await getDocs(collection(db, 'salons', salonId, 'services'));
+    const servicesList = servicesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setServices(servicesList);
     
-    if (!categoryName) {
+    // Extract unique categories from services
+    const uniqueCategories = [...new Set(servicesList.map(service => service.category))];
+    setCategories(uniqueCategories);
+  } catch (error) {
+    console.error('Error fetching services:', error);
+    showToast('Failed to load services', 'error');
+  } finally {
+    setLoading(false);
+  }
+}, [salonId, setServices, setCategories, setLoading, showToast]); // Add all dependencies
+
+// Wrap loadCatalogueSettings in useCallback
+const loadCatalogueSettings = useCallback(async () => {
+  try {
+    const settingsDoc = await getDoc(doc(db, 'salons', salonId, 'catalogue', 'settings'));
+    if (settingsDoc.exists()) {
+      setCatalogueSettings(prev => ({
+        ...prev,
+        ...settingsDoc.data()
+      }));
+    }
+  } catch (error) {
+    console.log('No catalogue settings found, using defaults');
+  }
+}, [salonId, setCatalogueSettings]); // Add all dependencies
+
+useEffect(() => {
+  fetchServices();
+  loadCatalogueSettings();
+}, [fetchServices, loadCatalogueSettings]);
+
+  const saveCatalogueSettings = async () => {
+    try {
+      await setDoc(doc(db, 'salons', salonId, 'catalogue', 'settings'), catalogueSettings);
+      showToast('Catalogue settings saved!', 'success');
+    } catch (error) {
+      console.error('Error saving catalogue settings:', error);
+      showToast('Failed to save settings', 'error');
+    }
+  };
+
+  // Get public catalogue link
+  const getCatalogueLink = () => {
+    return `${window.location.origin}/catalogue/${salonId}`;
+  };
+
+  const copyCatalogueLink = () => {
+    navigator.clipboard.writeText(getCatalogueLink());
+    showToast('Catalogue link copied!', 'success');
+  };
+
+  // Add new category
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) {
       showToast('Please enter a category name', 'error');
       return;
     }
     
+    const categoryName = newCategoryName.trim();
+    
+    // Check if category already exists
     if (categories.includes(categoryName)) {
       showToast('Category already exists!', 'error');
       return;
     }
     
+    // Add to categories list
     setCategories(prev => [...prev, categoryName]);
-    setNewService(prev => ({ ...prev, category: categoryName }));
+    
+    // If this is the first category, set it as default
+    if (categories.length === 0) {
+      setNewService(prev => ({ ...prev, category: categoryName }));
+    }
+    
     setNewCategoryName('');
     setShowAddCategory(false);
-    showToast(`"${categoryName}" category added!`, 'success');
+    showToast(`"${categoryName}" category added!`);
   };
 
+  // Delete category (only if no services use it)
   const handleDeleteCategory = (categoryToDelete) => {
+    // Check if any services use this category
     const servicesInCategory = services.filter(service => service.category === categoryToDelete);
     
     if (servicesInCategory.length > 0) {
-      showToast(
-        `Cannot delete category. ${servicesInCategory.length} service(s) are using it.`,
-        'error'
-      );
+      showToast(`Cannot delete "${categoryToDelete}" category. ${servicesInCategory.length} service(s) are using it. Please reassign or delete those services first.`, 'error');
       return;
     }
     
     if (window.confirm(`Delete "${categoryToDelete}" category?`)) {
       setCategories(prev => prev.filter(cat => cat !== categoryToDelete));
       
+      // If the deleted category was selected, switch to "All"
       if (activeCategory === categoryToDelete) {
         setActiveCategory('All');
       }
       
+      // If the deleted category was selected in newService, switch to first category or empty
       if (newService.category === categoryToDelete) {
-        setNewService(prev => ({
-          ...prev,
-          category: categories.length > 1 ? categories.find(c => c !== categoryToDelete) || '' : ''
-        }));
+        setNewService(prev => ({ ...prev, category: categories.length > 1 ? categories[0] : '' }));
       }
       
-      showToast(`"${categoryToDelete}" category deleted`, 'success');
+      showToast(`"${categoryToDelete}" category deleted`);
     }
   };
 
-  // ======================
-  // SERVICE MANAGEMENT
-  // ======================
-
-  const validateServiceData = () => {
-    if (!newService.name.trim()) {
-      showToast('Please enter service name', 'error');
-      return false;
-    }
-
-    const priceValue = parseFloat(newService.price);
-    if (isNaN(priceValue) || priceValue <= 0) {
-      showToast('Please enter a valid price', 'error');
-      return false;
-    }
-
-    if (categories.length > 0 && !newService.category) {
-      showToast('Please select a category', 'error');
-      return false;
-    }
-
-    return true;
-  };
-
-  const resetServiceForm = () => {
-    setNewService({
-      name: '',
-      category: categories.length > 0 ? categories[0] : '',
-      description: '',
-      price: '',
-      duration: '30',
-      imageUrl: '',
-      isActive: true
-    });
-    setEditingService(null);
-    setShowAddForm(false);
-  };
-
-  const handleImageUpload = (e) => {
+  // Handle image upload
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check file size (limit to 2MB for mobile)
-    if (file.size > 2 * 1024 * 1024) {
-      showToast('Image size should be less than 2MB', 'error');
+    // Check file size (limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image size should be less than 5MB', 'error');
       return;
     }
 
+    // Check file type
     if (!file.type.match('image.*')) {
       showToast('Please select an image file', 'error');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setNewService(prev => ({ ...prev, imageUrl: event.target.result }));
-      showToast('Image uploaded!', 'success');
-    };
-    reader.onerror = () => {
-      showToast('Failed to read image', 'error');
-    };
-    reader.readAsDataURL(file);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewService({...newService, imageUrl: reader.result});
+        showToast('Image uploaded!');
+      };
+      reader.onerror = () => {
+        showToast('Failed to read image', 'error');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      showToast('Failed to upload image', 'error');
+    }
   };
 
   const handleSaveService = async () => {
-    if (isSaving || !isOnline) {
-      showToast(isOnline ? 'Please wait...' : 'You are offline', 'warning');
+    if (!newService.name.trim()) {
+      showToast('Please enter service name', 'error');
       return;
     }
 
-    if (!validateServiceData()) return;
+    if (!newService.price) {
+      showToast('Please enter price', 'error');
+      return;
+    }
 
-    setIsSaving(true);
+    if (!newService.category && categories.length > 0) {
+      showToast('Please select a category', 'error');
+      return;
+    }
 
     try {
       const serviceData = {
         name: newService.name.trim(),
         category: newService.category || 'Uncategorized',
-        description: newService.description.trim(),
+        description: newService.description.trim() || '',
         price: parseFloat(newService.price),
         duration: parseInt(newService.duration) || 30,
         imageUrl: newService.imageUrl || '',
         isActive: true,
         createdAt: serverTimestamp(),
-        salonId: salonId,
-        updatedAt: serverTimestamp()
+        salonId: salonId
       };
 
       if (editingService) {
-        await updateDoc(
-          doc(db, 'salons', salonId, 'services', editingService.id),
-          serviceData
-        );
-        showToast('Service updated successfully!', 'success');
+        // Update existing service
+        await updateDoc(doc(db, 'salons', salonId, 'services', editingService.id), serviceData);
+        showToast('Service updated!');
       } else {
-        await addDoc(
-          collection(db, 'salons', salonId, 'services'),
-          serviceData
-        );
-        showToast('Service added successfully!', 'success');
+        // Add new service
+        await addDoc(collection(db, 'salons', salonId, 'services'), serviceData);
+        showToast('Service added!');
       }
 
+      // Refresh and reset
       await fetchServices();
-      resetServiceForm();
+      setNewService({
+        name: '',
+        category: categories.length > 0 ? categories[0] : '',
+        description: '',
+        price: '',
+        duration: '30',
+        imageUrl: '',
+        isActive: true
+      });
+      setEditingService(null);
+      setShowAddForm(false);
 
     } catch (error) {
-      logError(error, 'saveService');
-      
-      let errorMessage = 'Failed to save service';
-      if (error.code === 'permission-denied') {
-        errorMessage = 'Permission denied. Please contact support.';
-      } else if (error.code === 'unavailable') {
-        errorMessage = 'Network error. Please check your connection.';
-      } else if (error.message.includes('invalid-argument')) {
-        errorMessage = 'Invalid data. Please check all fields.';
-      }
-      
-      showToast(errorMessage, 'error');
-    } finally {
-      setIsSaving(false);
+      console.error('Error saving service:', error);
+      showToast('Failed to save service. Please try again.', 'error');
+    }
+  };
+
+  const handleDeleteService = async (serviceId, serviceName) => {
+    if (!window.confirm(`Delete "${serviceName}"?`)) return;
+
+    try {
+      await deleteDoc(doc(db, 'salons', salonId, 'services', serviceId));
+      await fetchServices();
+      showToast('Service deleted');
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      showToast('Failed to delete service.', 'error');
     }
   };
 
   const handleEditService = (service) => {
     setEditingService(service);
     setNewService({
-      name: service.name || '',
-      category: service.category || (categories[0] || ''),
+      name: service.name,
+      category: service.category || '',
       description: service.description || '',
-      price: service.price?.toString() || '',
+      price: service.price.toString(),
       duration: service.duration?.toString() || '30',
       imageUrl: service.imageUrl || '',
       isActive: service.isActive !== false
@@ -362,1210 +303,1420 @@ const ServicesContent = ({ salonId, salonData = {}, ownerData = {} }) => {
     setShowAddForm(true);
   };
 
-  const handleDeleteService = async (serviceId, serviceName) => {
-    if (!window.confirm(`Are you sure you want to delete "${serviceName}"?`)) return;
-
-    if (!isOnline) {
-      showToast('Cannot delete service while offline', 'error');
-      return;
-    }
-
-    try {
-      await deleteDoc(doc(db, 'salons', salonId, 'services', serviceId));
-      await fetchServices();
-      showToast('Service deleted', 'success');
-    } catch (error) {
-      logError(error, 'deleteService');
-      showToast('Failed to delete service. Please try again.', 'error');
-    }
-  };
-
   const handleToggleServiceStatus = async (service) => {
-    if (!isOnline) {
-      showToast('Cannot update service while offline', 'error');
-      return;
-    }
-
     try {
       const docRef = doc(db, 'salons', salonId, 'services', service.id);
-      await updateDoc(docRef, { 
-        isActive: !service.isActive,
-        updatedAt: serverTimestamp()
-      });
+      await updateDoc(docRef, { isActive: !service.isActive });
       await fetchServices();
-      showToast(`Service ${service.isActive ? 'deactivated' : 'activated'}`, 'success');
+      showToast(`Service ${service.isActive ? 'deactivated' : 'activated'}`);
     } catch (error) {
-      logError(error, 'toggleServiceStatus');
+      console.error('Error toggling service status:', error);
       showToast('Failed to update service status', 'error');
     }
   };
 
-  // ======================
-  // CATALOGUE MANAGEMENT
-  // ======================
+//   const handleLogoUpload = async (e) => {
+//     const file = e.target.files[0];
+//     if (!file) return;
 
-  const saveCatalogueSettings = async () => {
-    if (!isOnline) {
-      showToast('Cannot save settings while offline', 'error');
-      return;
-    }
-
-    try {
-      await setDoc(
-        doc(db, 'salons', salonId, 'catalogue', 'settings'),
-        catalogueSettings
-      );
-      showToast('Catalogue settings saved!', 'success');
-    } catch (error) {
-      logError(error, 'saveCatalogueSettings');
-      showToast('Failed to save settings', 'error');
-    }
-  };
-
-  const getCatalogueLink = () => {
-    return `${window.location.origin}/catalogue/${salonId}`;
-  };
-
-  const copyCatalogueLink = () => {
-    navigator.clipboard.writeText(getCatalogueLink()).then(
-      () => showToast('Catalogue link copied!', 'success'),
-      () => showToast('Failed to copy link', 'error')
-    );
-  };
-
-  // ======================
-  // RENDER HELPERS
-  // ======================
-
-  const renderLoading = () => (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      height: '300px'
-    }}>
-      <div className="spinner"></div>
-      <p style={{ color: '#6c757d', marginTop: '16px' }}>Loading services...</p>
-    </div>
-  );
-
-  const renderServiceCard = (service) => (
-    <div key={service.id} className="service-card">
-      <div className="service-image" style={{ 
-        background: service.imageUrl ? `url(${service.imageUrl}) center/cover` : '#f8f9fa'
-      }}>
-        {!service.imageUrl && <div className="image-placeholder">💼</div>}
-        <div className={`service-status ${service.isActive ? 'active' : 'inactive'}`}>
-          {service.isActive ? 'ACTIVE' : 'INACTIVE'}
-        </div>
-      </div>
-
-      <div className="service-details">
-        <div className="service-header">
-          <div className="service-info">
-            <h4>{service.name}</h4>
-            <div className="service-meta">
-              <span className="category-badge">{service.category}</span>
-              <span className="duration">{service.duration || 30} min</span>
-            </div>
-          </div>
-          <div className="service-price">${service.price}</div>
-        </div>
-
-        {service.description && (
-          <p className="service-description">
-            {service.description.length > 80 
-              ? `${service.description.substring(0, 80)}...` 
-              : service.description}
-          </p>
-        )}
-
-        <div className="service-actions">
-          <button
-            onClick={() => handleEditService(service)}
-            className="btn-edit"
-          >
-            ✏️ Edit
-          </button>
-          <button
-            onClick={() => handleToggleServiceStatus(service)}
-            className={`btn-toggle ${service.isActive ? 'deactivate' : 'activate'}`}
-          >
-            {service.isActive ? '⏸️ Deactivate' : '▶️ Activate'}
-          </button>
-          <button
-            onClick={() => handleDeleteService(service.id, service.name)}
-            className="btn-delete"
-          >
-            🗑️
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderCategoryTabs = () => (
-    <div className="category-tabs">
-      <button
-        onClick={() => setActiveCategory('All')}
-        className={`category-tab ${activeCategory === 'All' ? 'active' : ''}`}
-      >
-        All Services ({services.length})
-      </button>
-      {categories.map(cat => {
-        const count = services.filter(s => s.category === cat).length;
-        return (
-          <div key={cat} className="category-tab-wrapper">
-            <button
-              onClick={() => setActiveCategory(cat)}
-              className={`category-tab ${activeCategory === cat ? 'active' : ''} ${count === 0 ? 'empty' : ''}`}
-              disabled={count === 0}
-            >
-              {cat} ({count})
-            </button>
-            {count === 0 && (
-              <button
-                onClick={() => handleDeleteCategory(cat)}
-                className="delete-category-btn"
-                title="Delete category"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        );
-      })}
-      <button
-        onClick={() => setShowAddCategory(true)}
-        className="add-category-btn"
-      >
-        <span>+</span> Add Category
-      </button>
-    </div>
-  );
-
-  const renderEmptyState = () => (
-    <div className="empty-state">
-      <div className="empty-icon">💼</div>
-      <h3>No Services Yet</h3>
-      <p>
-        {activeCategory === 'All' 
-          ? 'Create your first service to build your catalogue' 
-          : `No services in the ${activeCategory} category`}
-      </p>
-      <button 
-        onClick={() => setShowAddForm(true)}
-        className="btn-primary"
-      >
-        {activeCategory === 'All' ? 'Create First Service' : `Add ${activeCategory} Service`}
-      </button>
-    </div>
-  );
-
-  const renderServiceForm = () => (
-    <div className="modal-overlay">
-      <div className="modal">
-        <div className="modal-header">
-          <h3>{editingService ? 'Edit Service' : 'Add New Service'}</h3>
-          <button onClick={resetServiceForm} className="close-btn">×</button>
-        </div>
-
-        <div className="modal-body">
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Service Name *</label>
-              <input
-                type="text"
-                value={newService.name}
-                onChange={(e) => setNewService(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Women's Haircut, Manicure, Facial"
-                className="form-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <div className="form-label-row">
-                <label>Category *</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setShowAddCategory(true);
-                  }}
-                  className="text-link"
-                >
-                  + Add New
-                </button>
-              </div>
-              {categories.length > 0 ? (
-                <select
-                  value={newService.category}
-                  onChange={(e) => setNewService(prev => ({ ...prev, category: e.target.value }))}
-                  className="form-select"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  value={newService.category}
-                  onChange={(e) => setNewService(prev => ({ ...prev, category: e.target.value }))}
-                  placeholder="Enter category name"
-                  className="form-input"
-                />
-              )}
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Price ($) *</label>
-                <input
-                  type="number"
-                  value={newService.price}
-                  onChange={(e) => setNewService(prev => ({ ...prev, price: e.target.value }))}
-                  placeholder="65"
-                  inputMode="decimal"
-                  step="0.01"
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Duration (minutes)</label>
-                <select
-                  value={newService.duration}
-                  onChange={(e) => setNewService(prev => ({ ...prev, duration: e.target.value }))}
-                  className="form-select"
-                >
-                  <option value="15">15 min</option>
-                  <option value="30">30 min</option>
-                  <option value="45">45 min</option>
-                  <option value="60">60 min</option>
-                  <option value="90">90 min</option>
-                  <option value="120">120 min</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Description (Optional)</label>
-              <textarea
-                value={newService.description}
-                onChange={(e) => setNewService(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe the service, what's included..."
-                rows="3"
-                className="form-textarea"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Service Image (Optional)</label>
-              <div className="image-upload-area" style={{ 
-                background: newService.imageUrl ? `url(${newService.imageUrl}) center/cover` : '#f9fafb'
-              }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="image-upload-input"
-                />
-                {!newService.imageUrl ? (
-                  <div className="upload-placeholder">
-                    <div>📷</div>
-                    <p>Click to upload image</p>
-                    <small>For service catalog</small>
-                  </div>
-                ) : (
-                  <div className="upload-overlay">
-                    Change Image
-                  </div>
-                )}
-              </div>
-              {newService.imageUrl && (
-                <button
-                  onClick={() => setNewService(prev => ({ ...prev, imageUrl: '' }))}
-                  className="btn-remove-image"
-                >
-                  Remove Image
-                </button>
-              )}
-            </div>
-
-            <div className="form-actions">
-              <button onClick={resetServiceForm} className="btn-secondary">
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveService}
-                disabled={isSaving}
-                className={`btn-primary ${isSaving ? 'loading' : ''}`}
-              >
-                {isSaving ? (
-                  <>
-                    <span className="spinner-small"></span>
-                    Saving...
-                  </>
-                ) : editingService ? 'Update Service' : 'Add Service'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderAddCategoryModal = () => (
-    <div className="modal-overlay">
-      <div className="modal">
-        <h3>Add New Category</h3>
-        <input
-          type="text"
-          value={newCategoryName}
-          onChange={(e) => setNewCategoryName(e.target.value)}
-          placeholder="Enter category name (e.g., Waxing, Kids)"
-          className="form-input"
-          autoFocus
-          onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-        />
-        <div className="modal-actions">
-          <button
-            onClick={() => {
-              setShowAddCategory(false);
-              setNewCategoryName('');
-            }}
-            className="btn-secondary"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleAddCategory}
-            className="btn-primary"
-          >
-            Add Category
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderToast = () => {
-    if (!toast) return null;
-
-    const icons = {
-      success: '✅',
-      error: '❌',
-      warning: '⚠️'
-    };
-
-    return (
-      <div className={`toast toast-${toast.type}`}>
-        <span className="toast-icon">{icons[toast.type] || 'ℹ️'}</span>
-        <span className="toast-message">{toast.message}</span>
-        <button onClick={() => setToast(null)} className="toast-close">
-          ×
-        </button>
-      </div>
-    );
-  };
-
-  // ======================
-  // MAIN RENDER
-  // ======================
+//     // For now, use base64
+//     const reader = new FileReader();
+//     reader.onloadend = () => {
+//       setCatalogueSettings(prev => ({
+//         ...prev,
+//         logoUrl: reader.result
+//       }));
+//       showToast('Logo uploaded successfully', 'success');
+//     };
+//     reader.readAsDataURL(file);
+//   };
 
   if (loading) {
-    return renderLoading();
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        height: '300px',
+        padding: '40px 20px' 
+      }}>
+        <div style={{
+          width: '50px',
+          height: '50px',
+          border: '3px solid #f3f3f3',
+          borderTop: '3px solid var(--primary-color)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <p style={{ color: '#6c757d', marginTop: '16px' }}>Loading services...</p>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
   }
 
   return (
-    <div className="services-container">
-      {/* Header */}
-      <div className="header">
-        <div className="header-left">
-          <h2>Services & Catalogue</h2>
-          <p>
+    <div style={{ padding: '20px' }}>
+      {/* Header with View Mode Toggle */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '24px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
+        <div>
+          <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 4px 0' }}>
+            Services & Catalogue
+          </h2>
+          <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
             {viewMode === 'manage' 
               ? 'Manage your services and organize them into categories' 
               : 'Preview how your catalogue looks to clients'}
           </p>
         </div>
         
-        <div className="header-right">
-          <div className="view-toggle">
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {/* View Mode Toggle */}
+          <div style={{
+            display: 'flex',
+            background: '#f8f9fa',
+            borderRadius: '8px',
+            padding: '4px',
+            gap: '4px'
+          }}>
             <button
               onClick={() => setViewMode('manage')}
-              className={`toggle-btn ${viewMode === 'manage' ? 'active' : ''}`}
+              style={{
+                padding: '8px 16px',
+                background: viewMode === 'manage' ? 'var(--primary-color)' : 'transparent',
+                color: viewMode === 'manage' ? 'white' : '#495057',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap'
+              }}
             >
               💼 Manage
             </button>
             <button
               onClick={() => setViewMode('preview')}
-              className={`toggle-btn ${viewMode === 'preview' ? 'active' : ''}`}
+              style={{
+                padding: '8px 16px',
+                background: viewMode === 'preview' ? 'var(--primary-color)' : 'transparent',
+                color: viewMode === 'preview' ? 'white' : '#495057',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap'
+              }}
             >
               👁️ Preview
             </button>
           </div>
           
+          {/* Action Buttons based on view mode */}
           {viewMode === 'manage' ? (
-            <button onClick={() => setShowAddForm(true)} className="btn-primary">
+            <button 
+              onClick={() => setShowAddForm(true)}
+              style={{
+                padding: '10px 16px',
+                background: 'var(--primary-color)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
               <span>➕</span> Add Service
             </button>
           ) : (
-            <button onClick={copyCatalogueLink} className="btn-primary btn-blue">
+            <button 
+              onClick={copyCatalogueLink}
+              style={{
+                padding: '10px 16px',
+                background: '#3B82F6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
               🔗 Copy Link
             </button>
           )}
         </div>
       </div>
 
-      {/* Network Status */}
-      {!isOnline && (
-        <div className="network-status">
-          <span>⚠️</span>
-          <span>Offline Mode - Some features may be limited</span>
-        </div>
-      )}
-
-      {/* Manage View */}
+      {/* MANAGE VIEW */}
       {viewMode === 'manage' && (
         <>
-          {renderCategoryTabs()}
-          
+          {/* Category Filter Tabs */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '8px', 
+            marginBottom: '20px',
+            overflowX: 'auto',
+            paddingBottom: '10px',
+            alignItems: 'center'
+          }}>
+            <button
+              onClick={() => setActiveCategory('All')}
+              style={{
+                padding: '8px 16px',
+                background: activeCategory === 'All' ? 'var(--primary-color)' : 'white',
+                color: activeCategory === 'All' ? 'white' : '#495057',
+                border: '1px solid #e9ecef',
+                borderRadius: '20px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              All Services ({services.length})
+            </button>
+            {categories.map(cat => {
+              const count = services.filter(s => s.category === cat).length;
+              return (
+                <div key={cat} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <button
+                    onClick={() => setActiveCategory(cat)}
+                    style={{
+                      padding: '8px 16px',
+                      background: activeCategory === cat ? 'var(--primary-color)' : 'white',
+                      color: activeCategory === cat ? 'white' : '#495057',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '20px',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      opacity: count === 0 ? 0.5 : 1,
+                      paddingRight: '32px'
+                    }}
+                    disabled={count === 0}
+                  >
+                    {cat} ({count})
+                  </button>
+                  {count === 0 && (
+                    <button
+                      onClick={() => handleDeleteCategory(cat)}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#dc2626',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Delete category"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            
+            {/* Add Category Button */}
+            <button
+              onClick={() => setShowAddCategory(true)}
+              style={{
+                padding: '8px 16px',
+                background: 'transparent',
+                color: 'var(--primary-color)',
+                border: '2px dashed var(--primary-color)',
+                borderRadius: '20px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Add new category"
+            >
+              <span style={{ fontSize: '18px' }}>+</span> Add Category
+            </button>
+          </div>
+
+          {/* Services Grid */}
           {filteredServices.length === 0 ? (
-            renderEmptyState()
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              background: '#f8f9fa',
+              borderRadius: '12px',
+              border: '2px dashed #dee2e6'
+            }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                background: '#e9ecef',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '32px',
+                margin: '0 auto 20px',
+                color: '#6c757d'
+              }}>
+                💼
+              </div>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#6c757d' }}>
+                No Services Yet
+              </h3>
+              <p style={{ color: '#adb5bd', fontSize: '14px', margin: '0 0 20px 0' }}>
+                {activeCategory === 'All' 
+                  ? 'Create your first service to build your catalogue' 
+                  : `No services in the ${activeCategory} category`}
+              </p>
+              <button 
+                onClick={() => setShowAddForm(true)}
+                style={{
+                  padding: '12px 24px',
+                  background: 'var(--primary-color)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                {activeCategory === 'All' ? 'Create First Service' : `Add ${activeCategory} Service`}
+              </button>
+            </div>
           ) : (
-            <div className="services-grid">
-              {filteredServices.map(renderServiceCard)}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+              gap: '20px'
+            }}>
+              {filteredServices.map(service => (
+                <div 
+                  key={service.id}
+                  style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    border: '1px solid #f1f3f4',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                  }}
+                >
+                  {/* Service Image */}
+                  <div style={{
+                    height: '160px',
+                    background: service.imageUrl ? `url(${service.imageUrl}) center/cover` : '#f8f9fa',
+                    position: 'relative'
+                  }}>
+                    {!service.imageUrl && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: '40px',
+                        color: '#dee2e6'
+                      }}>
+                        💼
+                      </div>
+                    )}
+                    <div style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: service.isActive ? '#10B981' : '#6c757d',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      fontWeight: '500'
+                    }}>
+                      {service.isActive ? 'ACTIVE' : 'INACTIVE'}
+                    </div>
+                  </div>
+
+                  {/* Service Details */}
+                  <div style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ 
+                          margin: '0 0 4px 0', 
+                          fontSize: '16px', 
+                          fontWeight: '600',
+                          color: '#1a1a1a'
+                        }}>
+                          {service.name}
+                        </h4>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '8px',
+                          marginBottom: '8px'
+                        }}>
+                          <span style={{
+                            fontSize: '12px',
+                            background: '#e9ecef',
+                            color: '#495057',
+                            padding: '2px 8px',
+                            borderRadius: '12px'
+                          }}>
+                            {service.category}
+                          </span>
+                          <span style={{
+                            fontSize: '12px',
+                            color: '#6c757d'
+                          }}>
+                            {service.duration || 30} min
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ 
+                        fontSize: '18px', 
+                        fontWeight: '700',
+                        color: 'var(--primary-color)'
+                      }}>
+                        ${service.price}
+                      </div>
+                    </div>
+
+                    {service.description && (
+                      <p style={{ 
+                        fontSize: '13px', 
+                        color: '#6c757d',
+                        margin: '8px 0 12px 0',
+                        lineHeight: '1.4'
+                      }}>
+                        {service.description.length > 80 
+                          ? `${service.description.substring(0, 80)}...` 
+                          : service.description}
+                      </p>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '8px',
+                      marginTop: '12px'
+                    }}>
+                      <button
+                        onClick={() => handleEditService(service)}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          background: '#e9ecef',
+                          color: '#495057',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => handleToggleServiceStatus(service)}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          background: service.isActive ? '#fee2e2' : '#d1fae5',
+                          color: service.isActive ? '#dc2626' : '#065f46',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {service.isActive ? '⏸️ Deactivate' : '▶️ Activate'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteService(service.id, service.name)}
+                        style={{
+                          padding: '8px 12px',
+                          background: '#fee2e2',
+                          color: '#dc2626',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </>
       )}
 
-      {/* Preview View */}
+      {/* PREVIEW VIEW */}
       {viewMode === 'preview' && (
-        <div className="preview-container">
-          {/* Preview content would go here */}
-          <p>Preview mode - Catalogue display would appear here</p>
-          <button onClick={() => window.open(getCatalogueLink(), '_blank')} className="btn-primary">
-            Open Catalogue
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Preview Header */}
+          <div className="content-card" style={{ 
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          }}>
+            <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              👁️ Live Preview
+            </h3>
+            <p style={{ color: '#6c757d', fontSize: '14px', marginBottom: '16px' }}>
+              Your clients will see this at: <code style={{ background: '#f8f9fa', padding: '4px 8px', borderRadius: '4px' }}>{getCatalogueLink()}</code>
+            </p>
+            
+            <div style={{ 
+              border: '2px solid #e9ecef', 
+              borderRadius: '12px', 
+              overflow: 'hidden',
+              background: 'white',
+              marginBottom: '20px'
+            }}>
+              {/* Preview Header */}
+              <div style={{
+                background: 'linear-gradient(135deg, var(--primary-color), #6d28d9)',
+                color: 'white',
+                padding: '24px',
+                textAlign: 'center'
+              }}>
+                {catalogueSettings.logoUrl ? (
+                  <img 
+                    src={catalogueSettings.logoUrl} 
+                    alt="Salon Logo" 
+                    style={{ 
+                      height: '80px', 
+                      marginBottom: '16px',
+                      borderRadius: '8px',
+                      background: 'white',
+                      padding: '8px'
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    background: 'rgba(255,255,255,0.2)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '32px',
+                    margin: '0 auto 16px'
+                  }}>
+                    ✂️
+                  </div>
+                )}
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '600' }}>
+                  {salonData?.name || 'Your Salon'}
+                </h3>
+                {catalogueSettings.showAboutSection && catalogueSettings.salonDescription && (
+                  <p style={{ 
+                    margin: '0 auto', 
+                    maxWidth: '600px',
+                    opacity: 0.9,
+                    fontSize: '14px'
+                  }}>
+                    {catalogueSettings.salonDescription.substring(0, 120)}...
+                  </p>
+                )}
+              </div>
+
+              {/* Preview Content */}
+              <div style={{ padding: '24px' }}>
+                {/* Contact Info Preview */}
+                {catalogueSettings.showContactInfo && (
+                  <div style={{ marginBottom: '32px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1a1a1a' }}>
+                      Contact Information
+                    </h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                      {catalogueSettings.contactPhone && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '20px' }}>📞</span>
+                          <span>{catalogueSettings.contactPhone}</span>
+                        </div>
+                      )}
+                      {catalogueSettings.contactEmail && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '20px' }}>📧</span>
+                          <span>{catalogueSettings.contactEmail}</span>
+                        </div>
+                      )}
+                      {catalogueSettings.address && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '20px' }}>📍</span>
+                          <span>{catalogueSettings.address}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Business Hours Preview */}
+                {catalogueSettings.showBusinessHours && (
+                  <div style={{ marginBottom: '32px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1a1a1a' }}>
+                      Business Hours
+                    </h4>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                      gap: '8px'
+                    }}>
+                      {Object.entries(catalogueSettings.businessHours).map(([day, hours]) => (
+                        <div key={day} style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between',
+                          padding: '8px',
+                          background: hours.closed ? '#f8f9fa' : 'white',
+                          borderRadius: '6px',
+                          border: '1px solid #e9ecef'
+                        }}>
+                          <span style={{ 
+                            textTransform: 'capitalize',
+                            fontWeight: '500'
+                          }}>
+                            {day}
+                          </span>
+                          {hours.closed ? (
+                            <span style={{ color: '#dc2626' }}>Closed</span>
+                          ) : (
+                            <span>{hours.open} - {hours.close}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Services Preview */}
+                {catalogueSettings.showServices && (
+                  <div>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '16px'
+                    }}>
+                      <h4 style={{ margin: 0, fontSize: '18px', color: '#1a1a1a' }}>
+                        Our Services
+                      </h4>
+                      <span style={{ fontSize: '14px', color: '#6c757d' }}>
+                        {services.filter(s => s.isActive).length} services available
+                      </span>
+                    </div>
+                    
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                      gap: '16px'
+                    }}>
+                      {services.slice(0, 6).map(service => service.isActive && (
+                        <div key={service.id} style={{
+                          padding: '16px',
+                          background: 'white',
+                          borderRadius: '8px',
+                          border: '1px solid #e9ecef',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                        }}>
+                          <div style={{ display: 'flex', gap: '12px' }}>
+                            {service.imageUrl ? (
+                              <div style={{
+                                width: '60px',
+                                height: '60px',
+                                background: `url(${service.imageUrl}) center/cover`,
+                                borderRadius: '6px',
+                                flexShrink: 0
+                              }}></div>
+                            ) : (
+                              <div style={{
+                                width: '60px',
+                                height: '60px',
+                                background: '#f8f9fa',
+                                borderRadius: '6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '20px',
+                                color: '#adb5bd'
+                              }}>
+                                💇
+                              </div>
+                            )}
+                            <div style={{ flex: 1 }}>
+                              <h5 style={{ margin: '0 0 4px 0', fontSize: '16px' }}>
+                                {service.name}
+                              </h5>
+                              <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                              }}>
+                                <span style={{ 
+                                  fontSize: '12px', 
+                                  background: '#e9ecef',
+                                  color: '#495057',
+                                  padding: '2px 8px',
+                                  borderRadius: '12px'
+                                }}>
+                                  {service.category}
+                                </span>
+                                <span style={{ 
+                                  fontSize: '16px', 
+                                  fontWeight: '600',
+                                  color: 'var(--primary-color)'
+                                }}>
+                                  ${service.price}
+                                </span>
+                              </div>
+                              {service.description && (
+                                <p style={{ 
+                                  margin: '8px 0 0 0', 
+                                  fontSize: '12px', 
+                                  color: '#6c757d',
+                                  lineHeight: 1.4
+                                }}>
+                                  {service.description.substring(0, 60)}...
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {services.length > 6 && (
+                      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                        <button style={{
+                          padding: '10px 24px',
+                          background: 'white',
+                          color: 'var(--primary-color)',
+                          border: '2px solid var(--primary-color)',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: 'pointer'
+                        }}>
+                          View All Services
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <button 
+                onClick={() => window.open(getCatalogueLink(), '_blank')}
+                style={{
+                  padding: '12px 24px',
+                  background: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                👁️ Open in New Tab
+              </button>
+              
+              <button 
+                onClick={copyCatalogueLink}
+                style={{
+                  padding: '12px 24px',
+                  background: '#3B82F6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                🔗 Copy Link
+              </button>
+              
+              <button 
+                onClick={() => setViewMode('manage')}
+                style={{
+                  padding: '12px 24px',
+                  background: '#f8f9fa',
+                  color: '#495057',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                ⚙️ Edit Catalogue Settings
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Settings */}
+          <div className="content-card" style={{ 
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          }}>
+            <h3 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              ⚙️ Quick Settings
+            </h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                <div>
+                  <p style={{ margin: '0 0 4px 0', fontWeight: '500' }}>Show Contact Info</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>Phone, email, address</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={catalogueSettings.showContactInfo}
+                  onChange={(e) => setCatalogueSettings(prev => ({ ...prev, showContactInfo: e.target.checked }))}
+                  style={{ width: '20px', height: '20px' }}
+                />
+              </label>
+              
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                <div>
+                  <p style={{ margin: '0 0 4px 0', fontWeight: '500' }}>Show Business Hours</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>Operating hours</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={catalogueSettings.showBusinessHours}
+                  onChange={(e) => setCatalogueSettings(prev => ({ ...prev, showBusinessHours: e.target.checked }))}
+                  style={{ width: '20px', height: '20px' }}
+                />
+              </label>
+              
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                <div>
+                  <p style={{ margin: '0 0 4px 0', fontWeight: '500' }}>Show Services</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>Service menu</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={catalogueSettings.showServices}
+                  onChange={(e) => setCatalogueSettings(prev => ({ ...prev, showServices: e.target.checked }))}
+                  style={{ width: '20px', height: '20px' }}
+                />
+              </label>
+            </div>
+            
+            <button 
+              onClick={saveCatalogueSettings}
+              style={{
+                marginTop: '20px',
+                padding: '12px 24px',
+                background: 'var(--primary-color)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                width: '100%'
+              }}
+            >
+              💾 Save Catalogue Settings
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Modals */}
-      {showAddForm && renderServiceForm()}
-      {showAddCategory && renderAddCategoryModal()}
-      {renderToast()}
-
-      {/* Styles */}
-      <style jsx>{`
-        .services-container {
-          padding: 20px;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        /* Header Styles */
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 24px;
-          flex-wrap: wrap;
-          gap: 16px;
-        }
-
-        .header-left h2 {
-          font-size: 20px;
-          font-weight: 600;
-          margin: 0 0 4px 0;
-        }
-
-        .header-left p {
-          color: #6c757d;
-          font-size: 14px;
-          margin: 0;
-        }
-
-        .header-right {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-
-        /* View Toggle */
-        .view-toggle {
-          display: flex;
-          background: #f8f9fa;
-          border-radius: 8px;
-          padding: 4px;
-          gap: 4px;
-        }
-
-        .toggle-btn {
-          padding: 8px 16px;
-          background: transparent;
-          color: #495057;
-          border: none;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          white-space: nowrap;
-        }
-
-        .toggle-btn.active {
-          background: var(--primary-color);
-          color: white;
-        }
-
-        /* Buttons */
-        .btn-primary {
-          padding: 10px 16px;
-          background: var(--primary-color);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: opacity 0.2s;
-        }
-
-        .btn-primary:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        .btn-primary.loading {
-          opacity: 0.8;
-        }
-
-        .btn-secondary {
-          padding: 12px;
-          background: #e9ecef;
-          color: #495057;
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          flex: 1;
-        }
-
-        .btn-blue {
-          background: #3B82F6;
-        }
-
-        /* Category Tabs */
-        .category-tabs {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 20px;
-          overflow-x: auto;
-          padding-bottom: 10px;
-          align-items: center;
-        }
-
-        .category-tab {
-          padding: 8px 16px;
-          background: white;
-          color: #495057;
-          border: 1px solid #e9ecef;
-          border-radius: 20px;
-          font-size: 14px;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: all 0.2s;
-        }
-
-        .category-tab.active {
-          background: var(--primary-color);
-          color: white;
-          border-color: var(--primary-color);
-        }
-
-        .category-tab.empty {
-          opacity: 0.5;
-          padding-right: 32px;
-        }
-
-        .category-tab-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .delete-category-btn {
-          position: absolute;
-          right: 8px;
-          background: transparent;
-          border: none;
-          color: #dc2626;
-          cursor: pointer;
-          font-size: 16px;
-          padding: 2px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .add-category-btn {
-          padding: 8px 16px;
-          background: transparent;
-          color: var(--primary-color);
-          border: 2px dashed var(--primary-color);
-          border-radius: 20px;
-          font-size: 14px;
-          cursor: pointer;
-          white-space: nowrap;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        /* Services Grid */
-        .services-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 20px;
-        }
-
-        /* Service Card */
-        .service-card {
-          background: white;
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-          border: 1px solid #f1f3f4;
-          transition: all 0.2s;
-        }
-
-        .service-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-
-        .service-image {
-          height: 160px;
-          position: relative;
-        }
-
-        .image-placeholder {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 40px;
-          color: #dee2e6;
-        }
-
-        .service-status {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 11px;
-          font-weight: 500;
-        }
-
-        .service-status.active {
-          background: #10B981;
-        }
-
-        .service-status.inactive {
-          background: #6c757d;
-        }
-
-        .service-details {
-          padding: 16px;
-        }
-
-        .service-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-
-        .service-info {
-          flex: 1;
-        }
-
-        .service-info h4 {
-          margin: 0 0 4px 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #1a1a1a;
-        }
-
-        .service-meta {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-
-        .category-badge {
-          font-size: 12px;
-          background: #e9ecef;
-          color: #495057;
-          padding: 2px 8px;
-          border-radius: 12px;
-        }
-
-        .duration {
-          font-size: 12px;
-          color: #6c757d;
-        }
-
-        .service-price {
-          font-size: 18px;
-          font-weight: 700;
-          color: var(--primary-color);
-        }
-
-        .service-description {
-          font-size: 13px;
-          color: #6c757d;
-          margin: 8px 0 12px 0;
-          line-height: 1.4;
-        }
-
-        .service-actions {
-          display: flex;
-          gap: 8px;
-          margin-top: 12px;
-        }
-
-        .btn-edit, .btn-toggle, .btn-delete {
-          padding: 8px;
-          border: none;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-        }
-
-        .btn-edit {
-          flex: 1;
-          background: #e9ecef;
-          color: #495057;
-        }
-
-        .btn-toggle {
-          flex: 1;
-        }
-
-        .btn-toggle.deactivate {
-          background: #fee2e2;
-          color: #dc2626;
-        }
-
-        .btn-toggle.activate {
-          background: #d1fae5;
-          color: #065f46;
-        }
-
-        .btn-delete {
-          padding: 8px 12px;
-          background: #fee2e2;
-          color: #dc2626;
-        }
-
-        /* Empty State */
-        .empty-state {
-          text-align: center;
-          padding: 60px 20px;
-          background: #f8f9fa;
-          border-radius: 12px;
-          border: 2px dashed #dee2e6;
-        }
-
-        .empty-icon {
-          width: 80px;
-          height: 80px;
-          background: #e9ecef;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 32px;
-          margin: 0 auto 20px;
-          color: #6c757d;
-        }
-
-        .empty-state h3 {
-          margin: 0 0 8px 0;
-          font-size: 18px;
-          color: #6c757d;
-        }
-
-        .empty-state p {
-          color: #adb5bd;
-          font-size: 14px;
-          margin: 0 0 20px 0;
-        }
-
-        /* Forms */
-        .form-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .form-label-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-        }
-
-        .form-input, .form-select, .form-textarea {
-          width: 100%;
-          padding: 12px;
-          border: 1px solid #e9ecef;
-          border-radius: 8px;
-          font-size: 16px;
-          font-family: inherit;
-        }
-
-        .form-textarea {
-          resize: vertical;
-          min-height: 80px;
-        }
-
-        .text-link {
-          background: transparent;
-          border: none;
-          color: var(--primary-color);
-          font-size: 12px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        /* Image Upload */
-        .image-upload-area {
-          border: 2px dashed #d1d5db;
-          border-radius: 8px;
-          padding: 20px;
-          text-align: center;
-          cursor: pointer;
-          height: 150px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          background-size: cover;
-          background-position: center;
-        }
-
-        .image-upload-input {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          opacity: 0;
-          cursor: pointer;
-        }
-
-        .upload-placeholder {
-          color: #6b7280;
-        }
-
-        .upload-placeholder div {
-          font-size: 32px;
-          color: #9ca3af;
-          margin-bottom: 8px;
-        }
-
-        .upload-placeholder p {
-          margin: 0;
-          font-size: 14px;
-        }
-
-        .upload-placeholder small {
-          margin: 4px 0 0 0;
-          color: #9ca3af;
-          font-size: 12px;
-        }
-
-        .upload-overlay {
-          background: rgba(0,0,0,0.5);
-          color: white;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-size: 14px;
-        }
-
-        .btn-remove-image {
-          margin-top: 8px;
-          padding: 8px 16px;
-          background: #fee2e2;
-          color: #dc2626;
-          border: none;
-          border-radius: 6px;
-          font-size: 12px;
-          cursor: pointer;
-        }
-
-        .form-actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 16px;
-        }
-
-        /* Modals */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 20px;
-        }
-
-        .modal {
-          background: white;
-          border-radius: 16px;
-          width: 100%;
-          max-width: 500px;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-
-        .modal-header {
-          padding: 20px;
-          border-bottom: 1px solid #e9ecef;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .modal-header h3 {
-          margin: 0;
-          font-size: 18px;
-          font-weight: 600;
-        }
-
-        .close-btn {
-          background: none;
-          border: none;
-          font-size: 24px;
-          cursor: pointer;
-          color: #6c757d;
-          padding: 0;
-          width: 30px;
-          height: 30px;
-          display: flex;
-          align-items: center;
-          justifyContent: center;
-        }
-
-        .modal-body {
-          padding: 20px;
-        }
-
-        .modal-actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 20px;
-        }
-
-        /* Toast */
-        .toast {
-          position: fixed;
-          bottom: 80px;
-          left: 50%;
-          transform: translateX(-50%);
-          color: white;
-          padding: 12px 20px;
-          border-radius: 10px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-          z-index: 9999;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          min-width: 280px;
-          max-width: 90%;
-          animation: slideUp 0.3s ease;
-        }
-
-        .toast-success {
-          background: #10B981;
-        }
-
-        .toast-error {
-          background: #EF4444;
-        }
-
-        .toast-warning {
-          background: #F59E0B;
-        }
-
-        .toast-icon {
-          font-size: 18px;
-        }
-
-        .toast-message {
-          font-size: 14px;
-          font-weight: 500;
-          flex: 1;
-        }
-
-        .toast-close {
-          background: rgba(255,255,255,0.2);
-          border: none;
-          color: white;
-          border-radius: 50%;
-          width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 16px;
-        }
-
-        /* Network Status */
-        .network-status {
-          background: #F59E0B;
-          color: white;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-size: 12px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-bottom: 16px;
-        }
-
-        /* Loading Spinners */
-        .spinner {
-          width: 50px;
-          height: 50px;
-          border: 3px solid #f3f3f3;
-          border-top: 3px solid var(--primary-color);
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        .spinner-small {
-          width: 16px;
-          height: 16px;
-          border: 2px solid rgba(255,255,255,0.3);
-          border-top: 2px solid white;
-          border-radius: 50%;
-          animation: spin 0.6s linear infinite;
-          display: inline-block;
-          margin-right: 8px;
-        }
-
-        /* Animations */
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-          }
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-          .header {
-            flex-direction: column;
-          }
-          
-          .header-right {
-            width: 100%;
-            justify-content: space-between;
-          }
-          
-          .services-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .form-row {
-            grid-template-columns: 1fr;
-          }
-          
-          .service-actions {
-            flex-wrap: wrap;
-          }
-          
-          .btn-edit, .btn-toggle {
-            flex: none;
-            width: calc(50% - 4px);
-          }
-          
-          .btn-delete {
-            width: 100%;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .services-container {
-            padding: 16px;
-          }
-          
-          .category-tabs {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          
-          .category-tab {
-            text-align: center;
-          }
-          
-          .modal {
-            margin: 10px;
-          }
-          
-          .toast {
-            width: calc(100% - 32px);
-            min-width: auto;
-          }
-        }
-      `}</style>
+      {/* Add Category Modal */}
+      {showAddCategory && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1001,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '400px',
+            padding: '20px'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>
+              Add New Category
+            </h3>
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Enter category name (e.g., Waxing, Kids)"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #e9ecef',
+                borderRadius: '8px',
+                fontSize: '16px',
+                marginBottom: '16px'
+              }}
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+            />
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => {
+                  setShowAddCategory(false);
+                  setNewCategoryName('');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#e9ecef',
+                  color: '#495057',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddCategory}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'var(--primary-color)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Add Category
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit Service Modal */}
+      {showAddForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '20px',
+              borderBottom: '1px solid #e9ecef',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                {editingService ? 'Edit Service' : 'Add New Service'}
+              </h3>
+              <button 
+                onClick={() => {
+                  setShowAddForm(false);
+                  setEditingService(null);
+                  setNewService({
+                    name: '',
+                    category: categories.length > 0 ? categories[0] : '',
+                    description: '',
+                    price: '',
+                    duration: '30',
+                    imageUrl: '',
+                    isActive: true
+                  });
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6c757d',
+                  padding: '0',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Service Name */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}>
+                    Service Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newService.name}
+                    onChange={(e) => setNewService({...newService, name: e.target.value})}
+                    placeholder="e.g., Women's Haircut, Manicure, Facial"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '8px',
+                      fontSize: '16px'
+                    }}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ 
+                      fontWeight: '500',
+                      fontSize: '14px'
+                    }}>
+                      Category *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setShowAddCategory(true);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--primary-color)',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span style={{ fontSize: '16px' }}>+</span> Add New
+                    </button>
+                  </div>
+                  {categories.length > 0 ? (
+                    <select
+                      value={newService.category}
+                      onChange={(e) => setNewService({...newService, category: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '1px solid #e9ecef',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        background: 'white'
+                      }}
+                    >
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={newService.category}
+                      onChange={(e) => setNewService({...newService, category: e.target.value})}
+                      placeholder="Enter category name"
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '1px solid #e9ecef',
+                        borderRadius: '8px',
+                        fontSize: '16px'
+                      }}
+                    />
+                  )}
+                </div>
+
+                {/* Price & Duration */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '8px', 
+                      fontWeight: '500',
+                      fontSize: '14px'
+                    }}>
+                      Price ($) *
+                    </label>
+                    <input
+                      type="number"
+                      value={newService.price}
+                      onChange={(e) => setNewService({...newService, price: e.target.value})}
+                      placeholder="65"
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '1px solid #e9ecef',
+                        borderRadius: '8px',
+                        fontSize: '16px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '8px', 
+                      fontWeight: '500',
+                      fontSize: '14px'
+                    }}>
+                      Duration (minutes)
+                    </label>
+                    <select
+                      value={newService.duration}
+                      onChange={(e) => setNewService({...newService, duration: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '1px solid #e9ecef',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        background: 'white'
+                      }}
+                    >
+                      <option value="15">15 min</option>
+                      <option value="30">30 min</option>
+                      <option value="45">45 min</option>
+                      <option value="60">60 min</option>
+                      <option value="90">90 min</option>
+                      <option value="120">120 min</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}>
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    value={newService.description}
+                    onChange={(e) => setNewService({...newService, description: e.target.value})}
+                    placeholder="Describe the service, what's included..."
+                    rows="3"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontFamily: 'inherit',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+
+                {/* Image Upload */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}>
+                    Service Image (Optional)
+                  </label>
+                  <div style={{
+                    border: '2px dashed #d1d5db',
+                    borderRadius: '8px',
+                    padding: '20px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    background: newService.imageUrl ? `url(${newService.imageUrl}) center/cover` : '#f9fafb',
+                    height: '150px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative'
+                  }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        opacity: 0,
+                        cursor: 'pointer'
+                      }}
+                    />
+                    {!newService.imageUrl ? (
+                      <div>
+                        <div style={{ fontSize: '32px', color: '#9ca3af', marginBottom: '8px' }}>
+                          📷
+                        </div>
+                        <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
+                          Click to upload image
+                        </p>
+                        <p style={{ margin: '4px 0 0 0', color: '#9ca3af', fontSize: '12px' }}>
+                          For service catalog
+                        </p>
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        background: 'rgba(0,0,0,0.5)', 
+                        color: 'white',
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        fontSize: '14px'
+                      }}>
+                        Change Image
+                      </div>
+                    )}
+                  </div>
+                  {newService.imageUrl && (
+                    <button
+                      onClick={() => setNewService({...newService, imageUrl: ''})}
+                      style={{
+                        marginTop: '8px',
+                        padding: '8px 16px',
+                        background: '#fee2e2',
+                        color: '#dc2626',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Remove Image
+                    </button>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                  <button
+                    onClick={() => {
+                      setShowAddForm(false);
+                      setEditingService(null);
+                      setNewService({
+                        name: '',
+                        category: categories.length > 0 ? categories[0] : '',
+                        description: '',
+                        price: '',
+                        duration: '30',
+                        imageUrl: '',
+                        isActive: true
+                      });
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      background: '#e9ecef',
+                      color: '#495057',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveService}
+                    style={{
+                      flex: 2,
+                      padding: '12px',
+                      background: 'var(--primary-color)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {editingService ? 'Update Service' : 'Add Service'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? '#10B981' : 
+                    toast.type === 'error' ? '#EF4444' : 
+                    toast.type === 'warning' ? '#F59E0B' : '#3B82F6',
+          color: 'white',
+          padding: '12px 20px',
+          borderRadius: '10px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          minWidth: '280px',
+          maxWidth: '90%',
+          animation: 'slideUp 0.3s ease'
+        }}>
+          <span style={{ fontSize: '18px' }}>
+            {toast.type === 'success' ? '✅' :
+             toast.type === 'error' ? '❌' :
+             toast.type === 'warning' ? '⚠️' : 'ℹ️'}
+          </span>
+          <span style={{ fontSize: '14px', fontWeight: '500', flex: 1 }}>
+            {toast.message}
+          </span>
+          <button 
+            onClick={() => setToast(null)}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: 'white',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            ×
+          </button>
+          <style>{`
+            @keyframes slideUp {
+              from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+              }
+              to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+              }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 };
