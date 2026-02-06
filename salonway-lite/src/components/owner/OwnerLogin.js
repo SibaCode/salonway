@@ -23,8 +23,8 @@ const VALID_CREDENTIALS = [
     email: 'thebeautyclub@gmail.com',
     password: 'I4FfldcaN8Ml',
     salonId: 'GGXnw4lFKEHB8IpPP99C',
-    salonName: 'The Beauty Club',
-    ownerName: 'Kat Moeti'
+    salonName: 'The Beauty Club Tes',
+    ownerName: 'Kat Moeti Test'
   },
 ];
 
