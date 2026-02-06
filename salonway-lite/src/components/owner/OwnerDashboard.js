@@ -1136,9 +1136,8 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
 const ReportsContent = ({ salonId }) => {
   const [dateRange, setDateRange] = useState('today');
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+    const [debugInfo, setDebugInfo] = useState('');
   const [reportsData, setReportsData] = useState({
-    // Quick Numbers
     totalRevenue: 0,
     servicesDone: 0,
     staffActive: 0,
@@ -1147,19 +1146,15 @@ const ReportsContent = ({ salonId }) => {
     avgPerHour: 0,
     hoursWorked: 0,
     returnRate: 0,
-    
-    // Staff Performance
     staffPerformance: [],
-    
-    // Popular Services
     popularServices: [],
-    
-    // Work Logs
     workLogs: [],
-    
-    // New Clients
     newClientsList: []
   });
+  const debugLog = (message, data = null) => {
+    console.log(`🔍 ${message}`, data);
+    setDebugInfo(prev => prev + `\n${message}: ${JSON.stringify(data?.slice(0, 2) || data)}`);
+  };
 
   const dateRanges = [
     { id: 'today', label: 'Today' },
@@ -1190,75 +1185,149 @@ const ReportsContent = ({ salonId }) => {
   };
 
   const fetchReportsData = useCallback(async () => {
-    setRefreshing(true);
+    setLoading(true);
+    setDebugInfo('Starting fetch...\n');
+    
     try {
-      // Fetch work logs
+      debugLog('Fetching for salonId:', salonId);
+      
+      // Let's check ALL collections to see what data we have
+      const collectionsToCheck = [
+        'workLogs',
+        'consultations', 
+        'clockRecords',
+        'staffWorkLogs', // Check if this exists
+        'services', // For service names
+        'salons' // For staff list
+      ];
+      
+      // 1. FIRST: Let's check what work logs we have
       const workLogsQuery = query(
         collection(db, 'workLogs'),
         where('salonId', '==', salonId),
-        orderBy('timestamp', 'desc'),
-        limit(200)
+        orderBy('timestamp', 'desc')
       );
-
+      
       const workLogsSnapshot = await getDocs(workLogsQuery);
       const allWorkLogs = workLogsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-
+      
+      debugLog('Work logs found:', allWorkLogs);
+      
+      if (allWorkLogs.length === 0) {
+        debugLog('⚠️ No work logs found. Checking other collections...');
+        
+        // Check consultations
+        const consultationsQuery = query(
+          collection(db, 'consultations'),
+          where('salonId', '==', salonId)
+        );
+        const consultationsSnapshot = await getDocs(consultationsQuery);
+        const consultations = consultationsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        debugLog('Consultations found:', consultations);
+        
+        // Check clock records
+        const clockQuery = query(
+          collection(db, 'clockRecords'),
+          where('salonId', '==', salonId)
+        );
+        const clockSnapshot = await getDocs(clockQuery);
+        const clockRecords = clockSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        debugLog('Clock records found:', clockRecords);
+        
+        // Check staff collection
+        try {
+          const staffQuery = query(collection(db, 'salons', salonId, 'staff'));
+          const staffSnapshot = await getDocs(staffQuery);
+          const staffList = staffSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          debugLog('Staff found:', staffList);
+        } catch (err) {
+          debugLog('Staff collection error:', err.message);
+        }
+      }
+      
       // Filter by date range
       const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const yesterday = new Date(now.setDate(now.getDate() - 1)).toISOString().split('T')[0];
+      
+      debugLog('Today:', today);
+      debugLog('Yesterday:', yesterday);
+      
       let filteredLogs = allWorkLogs;
       
       if (dateRange === 'today') {
-        const today = now.toISOString().split('T')[0];
-        filteredLogs = allWorkLogs.filter(log => log.date === today);
-      } else if (dateRange === 'yesterday') {
-        const yesterday = new Date(now);
-        yesterday.setDate(now.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-        filteredLogs = allWorkLogs.filter(log => log.date === yesterdayStr);
-      } else if (dateRange === 'week') {
-        const weekAgo = new Date(now.setDate(now.getDate() - 7));
         filteredLogs = allWorkLogs.filter(log => {
-          const logDate = new Date(log.timestamp?.toDate?.() || log.timestamp);
-          return logDate >= weekAgo;
+          const logDate = log.date || (log.timestamp?.toDate?.()?.toISOString().split('T')[0]);
+          debugLog(`Checking log date: ${logDate} vs today: ${today}`);
+          return logDate === today;
         });
-      } else if (dateRange === 'month') {
-        const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+      } else if (dateRange === 'yesterday') {
         filteredLogs = allWorkLogs.filter(log => {
-          const logDate = new Date(log.timestamp?.toDate?.() || log.timestamp);
-          return logDate >= monthAgo;
+          const logDate = log.date || (log.timestamp?.toDate?.()?.toISOString().split('T')[0]);
+          return logDate === yesterday;
         });
       }
-
-      // Calculate metrics
-      const totalRevenue = filteredLogs.reduce((sum, log) => sum + (parseFloat(log.servicePrice) || 0), 0);
+      
+      debugLog('Filtered logs:', filteredLogs);
+      
+      // Calculate REAL metrics from actual data
+      const totalRevenue = filteredLogs.reduce((sum, log) => {
+        const price = parseFloat(log.servicePrice) || 
+                     parseFloat(log.price) || 
+                     parseFloat(log.amount) || 0;
+        return sum + price;
+      }, 0);
+      
       const servicesDone = filteredLogs.length;
       
-      // Staff performance
+      // Staff performance from REAL data
       const staffMap = {};
       filteredLogs.forEach(log => {
-        const staffName = log.staffName || 'Unknown';
+        const staffName = log.staffName || 
+                         log.staff || 
+                         log.employeeName || 
+                         'Unknown Staff';
+        const price = parseFloat(log.servicePrice) || 
+                     parseFloat(log.price) || 
+                     parseFloat(log.amount) || 0;
+        
         if (!staffMap[staffName]) {
           staffMap[staffName] = {
             name: staffName,
             revenue: 0,
-            services: 0,
-            hours: 8 // Default for now
+            services: 0
           };
         }
-        staffMap[staffName].revenue += (parseFloat(log.servicePrice) || 0);
+        staffMap[staffName].revenue += price;
         staffMap[staffName].services += 1;
       });
-
+      
       const staffPerformance = Object.values(staffMap)
         .sort((a, b) => b.revenue - a.revenue);
-
-      // Popular services
+      
+      // Popular services from REAL data
       const serviceMap = {};
       filteredLogs.forEach(log => {
-        const serviceName = log.serviceName || 'Unknown Service';
+        const serviceName = log.serviceName || 
+                           log.service || 
+                           log.description || 
+                           'Unknown Service';
+        const price = parseFloat(log.servicePrice) || 
+                     parseFloat(log.price) || 
+                     parseFloat(log.amount) || 0;
+        
         if (!serviceMap[serviceName]) {
           serviceMap[serviceName] = {
             name: serviceName,
@@ -1267,71 +1336,125 @@ const ReportsContent = ({ salonId }) => {
           };
         }
         serviceMap[serviceName].count += 1;
-        serviceMap[serviceName].revenue += (parseFloat(log.servicePrice) || 0);
+        serviceMap[serviceName].revenue += price;
       });
-
+      
       const popularServices = Object.values(serviceMap)
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
-
-      // New clients (simplified - clients from today who haven't booked before)
-      const uniqueClients = new Set();
-      const newClients = filteredLogs.filter(log => {
-        const clientName = log.clientName;
-        if (!clientName || uniqueClients.has(clientName)) return false;
-        uniqueClients.add(clientName);
-        
-        // Check if this is their first booking (simplified)
-        const hasPreviousBookings = allWorkLogs.some(
-          otherLog => otherLog.clientName === clientName && otherLog.id !== log.id
+      
+      // Get staff active from clock records
+      let staffActive = 0;
+      try {
+        const activeClockQuery = query(
+          collection(db, 'clockRecords'),
+          where('salonId', '==', salonId),
+          where('clockOut', '==', null)
         );
-        return !hasPreviousBookings;
-      });
-
-      // Calculate additional metrics
-      const staffActive = staffPerformance.length;
-      const hoursWorked = staffActive * 8; // Simplified
-      const avgPerHour = servicesDone > 0 ? (servicesDone / 10).toFixed(1) : 0; // Assuming 10-hour day
-      const returnRate = 80; // Hardcoded for now
-
-      // Compare with yesterday (simplified)
+        const activeClockSnapshot = await getDocs(activeClockQuery);
+        staffActive = activeClockSnapshot.docs.length;
+        debugLog('Active staff from clock records:', staffActive);
+      } catch (err) {
+        debugLog('Clock records error:', err.message);
+        staffActive = staffPerformance.length; // Fallback
+      }
+      
+      // Get new clients from consultations
+      let newClients = 0;
+      let newClientsList = [];
+      try {
+        const consultationsQuery = query(
+          collection(db, 'consultations'),
+          where('salonId', '==', salonId),
+          where('createdAt', '>=', new Date(new Date().setHours(0, 0, 0, 0)))
+        );
+        const consultationsSnapshot = await getDocs(consultationsQuery);
+        newClientsList = consultationsSnapshot.docs.map(doc => ({
+          name: doc.data().clientName || 'Unknown Client',
+          revenue: 0, // We'll calculate this later
+          services: 1
+        }));
+        newClients = newClientsList.length;
+        debugLog('New clients from consultations:', newClientsList);
+      } catch (err) {
+        debugLog('Consultations error:', err.message);
+      }
+      
+      // Calculate yesterday's revenue for comparison
       let vsYesterday = 0;
       if (dateRange === 'today') {
-        const yesterday = new Date(now);
-        yesterday.setDate(now.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-        const yesterdayLogs = allWorkLogs.filter(log => log.date === yesterdayStr);
-        const yesterdayRevenue = yesterdayLogs.reduce((sum, log) => sum + (parseFloat(log.servicePrice) || 0), 0);
+        const yesterdayLogs = allWorkLogs.filter(log => {
+          const logDate = log.date || (log.timestamp?.toDate?.()?.toISOString().split('T')[0]);
+          return logDate === yesterday;
+        });
+        
+        const yesterdayRevenue = yesterdayLogs.reduce((sum, log) => {
+          const price = parseFloat(log.servicePrice) || 
+                       parseFloat(log.price) || 
+                       parseFloat(log.amount) || 0;
+          return sum + price;
+        }, 0);
+        
         vsYesterday = totalRevenue - yesterdayRevenue;
+        debugLog('Yesterday revenue:', yesterdayRevenue);
       }
-
+      
+      // Update state with REAL data
       setReportsData({
         totalRevenue,
         servicesDone,
         staffActive,
-        newClients: newClients.length,
+        newClients,
         vsYesterday,
-        avgPerHour,
-        hoursWorked,
-        returnRate,
+        avgPerHour: servicesDone > 0 ? (servicesDone / 10).toFixed(1) : 0,
+        hoursWorked: staffActive * 8,
+        returnRate: 80, // Hardcoded for now
         staffPerformance,
         popularServices,
-        workLogs: filteredLogs.slice(0, 20), // Last 20 entries
-        newClientsList: newClients.map(log => ({
-          name: log.clientName || 'Unknown Client',
-          services: 1, // Simplified
-          revenue: parseFloat(log.servicePrice) || 0
-        }))
+        workLogs: filteredLogs.slice(0, 20),
+        newClientsList
       });
-
+      
+      debugLog('✅ Final reports data calculated');
+      
     } catch (error) {
-      console.error('Error fetching reports:', error);
+      debugLog('❌ Error fetching reports:', error.message);
+      console.error('Full error:', error);
     } finally {
-      setRefreshing(false);
       setLoading(false);
     }
   }, [salonId, dateRange]);
 
+  useEffect(() => {
+    fetchReportsData();
+  }, [fetchReportsData]);
+
+  // Simple debug view to show what data we're getting
+  const renderDebugView = () => (
+    <div style={{
+      background: '#1F2937',
+      color: 'white',
+      padding: '12px',
+      borderRadius: '8px',
+      margin: '10px',
+      fontSize: '11px',
+      fontFamily: 'monospace',
+      maxHeight: '200px',
+      overflowY: 'auto',
+      whiteSpace: 'pre-wrap'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <strong>Debug Info:</strong>
+        <button 
+          onClick={() => setDebugInfo('')}
+          style={{ background: 'none', border: 'none', color: '#60A5FA', cursor: 'pointer' }}
+        >
+          Clear
+        </button>
+      </div>
+      {debugInfo || 'No debug info yet...'}
+    </div>
+  );
   useEffect(() => {
     fetchReportsData();
   }, [fetchReportsData]);
@@ -1843,28 +1966,26 @@ ${reportsData.popularServices.map((service, i) => `${i + 1}. ${service.name} - $
           🖨️ PRINT
         </button>
         
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          style={{
-            flex: 1,
-            padding: '12px',
-            background: '#10B981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            opacity: refreshing ? 0.7 : 1
-          }}
-        >
-          {refreshing ? '🔄' : '🔄'} REFRESH
-        </button>
+          <button
+      onClick={handleRefresh}
+      style={{
+        flex: 1,
+        padding: '12px',
+        background: '#10B981',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px'
+      }}
+    >
+      🔄 REFRESH
+    </button>
       </div>
     </div>
   );

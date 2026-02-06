@@ -9,7 +9,7 @@ const VALID_CREDENTIALS = [
     email: 'test3@gmail.com',
     password: '51PH1KlYBn@f',
     salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg',
-    salonName: 'Mamazi',
+    salonName: 'Mamazi1',
     ownerName: 'Mamazi'
   },
   {
@@ -22,7 +22,7 @@ const VALID_CREDENTIALS = [
   {
     email: 'thebeautyclub@gmail.com',
     password: 'KNTNA1!R7w@l',
-    salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg',
+    salonId: 'wTHoxDi4owFzyYf1xhQZ',
     salonName: 'The Beauty Club',
     ownerName: 'Kat Moeti'
   },
@@ -406,13 +406,13 @@ const OwnerLogin = () => {
 window.testNavigation = () => {
   console.log('🔧 Testing navigation manually...');
   const testData = {
-    salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg',
-    email: 'test3@gmail.com',
+    salonId: 'wTHoxDi4owFzyYf1xhQZ',
+    email: 'thebeautyclub@gmail.com',
     name: 'Mamazi',
-    salonName: 'Mamazi',
+    salonName: 'The Beauty Club',
     timestamp: new Date().toISOString()
   };
-  
+ 
   localStorage.setItem('salonOwner', JSON.stringify(testData));
   console.log('💾 Saved test data to localStorage');
   
