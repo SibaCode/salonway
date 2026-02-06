@@ -251,49 +251,60 @@ const handleLogout = useCallback(() => {
     checkAuth();
   }, [checkAuth]);
 
-  const BottomNav = () => (
-    <nav className="bottom-nav">
-      <button 
-        onClick={() => setActiveTab('dashboard')}
-        className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-      >
-        <span className="nav-icon">🏠</span>
-        <span className="nav-label">Home</span>
-      </button>
-      
-      <button 
-        onClick={() => setActiveTab('staff')}
-        className={`nav-btn ${activeTab === 'staff' ? 'active' : ''}`}
-      >
-        <span className="nav-icon">👥</span>
-        <span className="nav-label">Staff</span>
-      </button>
-      
-      <button 
-        onClick={() => setActiveTab('services')}
-        className={`nav-btn ${activeTab === 'services' ? 'active' : ''}`}
-      >
-        <span className="nav-icon">💼</span>
-        <span className="nav-label">Services</span>
-      </button>
-      
-      <button 
-        onClick={() => setActiveTab('clients')}
-        className={`nav-btn ${activeTab === 'clients' ? 'active' : ''}`}
-      >
-        <span className="nav-icon">👤</span>
-        <span className="nav-label">Clients</span>
-      </button>
-      
-      <button 
-        onClick={() => setActiveTab('more')}
-        className={`nav-btn ${activeTab === 'more' ? 'active' : ''}`}
-      >
-        <span className="nav-icon">⚙️</span>
-        <span className="nav-label">More</span>
-      </button>
-    </nav>
-  );
+// BottomNav Component
+const BottomNav = () => (
+  <nav className="bottom-nav">
+    <button 
+      onClick={() => setActiveTab('dashboard')}
+      className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+    >
+      <span className="nav-icon">📊</span>
+      <span className="nav-label">Home</span>
+    </button>
+    
+    <button 
+      onClick={() => setActiveTab('staff')}
+      className={`nav-btn ${activeTab === 'staff' ? 'active' : ''}`}
+    >
+      <span className="nav-icon">👥</span>
+      <span className="nav-label">Staff</span>
+    </button>
+    
+    <button 
+      onClick={() => setActiveTab('services')}
+      className={`nav-btn ${activeTab === 'services' ? 'active' : ''}`}
+    >
+      <span className="nav-icon">💼</span>
+      <span className="nav-label">Services</span>
+    </button>
+    
+    <button 
+      onClick={() => setActiveTab('clients')}
+      className={`nav-btn ${activeTab === 'clients' ? 'active' : ''}`}
+    >
+      <span className="nav-icon">👤</span>
+      <span className="nav-label">Clients</span>
+    </button>
+    
+    <button 
+      onClick={() => setActiveTab('reports')}
+      className={`nav-btn ${activeTab === 'reports' ? 'active' : ''}`}
+    >
+      <span className="nav-icon">📈</span>
+      <span className="nav-label">Reports</span>
+    </button>
+    
+    <button 
+      onClick={() => setActiveTab('more')}
+      className={`nav-btn ${activeTab === 'more' ? 'active' : ''}`}
+    >
+      <span className="nav-icon">⚙️</span>
+      <span className="nav-label">More</span>
+    </button>
+  </nav>
+);
+
+// SidebarNav Component
 
  if (loading) {
   return (
@@ -382,6 +393,8 @@ if (errorState.hasError) {
           { id: 'staff', label: 'Staff', icon: '👥' },
           { id: 'services', label: 'Services', icon: '💼' },
           { id: 'clients', label: 'Clients', icon: '👤' },
+          { id: 'reports', label: 'Reports', icon: '📈' },
+
         ].map((item) => (
           <div
             key={item.id}
