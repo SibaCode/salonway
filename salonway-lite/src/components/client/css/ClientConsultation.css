@@ -782,3 +782,88 @@
 .btn-primary:hover {
   opacity: 0.9;
 }
+
+/* Staff Banner Styles */
+.staff-banner {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 0 0 12px 12px;
+  margin-bottom: 20px;
+}
+
+.staff-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.staff-avatar {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  border: 2px solid white;
+}
+
+.staff-banner-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+}
+
+.staff-banner-info p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+/* Staff Assignment Notice in Success Screen */
+.staff-assignment-notice {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.staff-info {
+  text-align: center;
+}
+
+.staff-info strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #065f46;
+}
+
+.staff-info p {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+  color: #047857;
+}
+
+.staff-note {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+/* Staff Note in Form */
+.staff-submit-note {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 15px 0;
+  text-align: center;
+  color: #1e40af;
+}

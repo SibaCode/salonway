@@ -130,7 +130,7 @@ const StaffDashboard = () => {
     }
   }, []);
 
-  // Check clock status
+  // Check clock status - STAFF SPECIFIC
   const checkClockStatus = useCallback(async (staffId, salonId) => {
     try {
       const q = query(
@@ -157,11 +157,13 @@ const StaffDashboard = () => {
     }
   }, []);
 
-  // Listen for NEW client forms - SIMPLIFIED
-  const listenToClientForms = useCallback((salonId) => {
+  // Listen for NEW client forms - STAFF SPECIFIC
+  const listenToClientForms = useCallback((salonId, staffId) => {
     const q = query(
       collection(db, 'consultations'),
-      where('salonId', '==', salonId)
+      where('salonId', '==', salonId),
+      where('assignedStaffId', '==', staffId), // Only forms assigned to this staff
+      where('status', 'in', ['new', 'claimed']) // Only new or claimed forms
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -170,22 +172,18 @@ const StaffDashboard = () => {
         ...doc.data()
       }));
       
-      // Filter new forms in JavaScript
-      const newForms = forms.filter(form => 
-        !form.status || form.status === 'new'
-      );
-      
-      // Sort by createdAt
-      newForms.sort((a, b) => {
+      // Sort by createdAt (newest first)
+      forms.sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
         return dateB - dateA;
       });
       
-      setClientForms(newForms);
+      setClientForms(forms);
       
-      if (newForms.length > clientForms.length && clientForms.length > 0) {
-        const newForm = newForms[0];
+      // Show notification for new forms
+      if (forms.length > 0 && forms[0].status === 'new') {
+        const newForm = forms[0];
         showToast(`New client form from ${newForm.clientName || 'a client'}`, 'info');
       }
     }, (error) => {
@@ -194,17 +192,18 @@ const StaffDashboard = () => {
     });
 
     return unsubscribe;
-  }, [clientForms.length]);
+  }, []);
 
-  // Load forms served by this staff - SIMPLIFIED
+  // Load forms served by this staff - STAFF SPECIFIC
   const loadMyForms = useCallback(async (staffId, salonId) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Simple query
+      // Query forms assigned to this staff OR served by this staff
       const formsQuery = query(
         collection(db, 'consultations'),
-        where('salonId', '==', salonId)
+        where('salonId', '==', salonId),
+        where('assignedStaffId', '==', staffId)
       );
       
       const snapshot = await getDocs(formsQuery);
@@ -215,11 +214,11 @@ const StaffDashboard = () => {
       
       // Filter in JavaScript
       const myForms = allForms.filter(form => 
-        form.servedByStaffId === staffId
+        form.assignedStaffId === staffId || form.servedByStaffId === staffId
       );
       
       const todayForms = myForms.filter(form => 
-        form.dateServed === today
+        form.dateServed === today && form.status === 'served'
       );
       
       // Sort by reviewedAt
@@ -238,7 +237,7 @@ const StaffDashboard = () => {
     }
   }, []);
 
-  // Load services
+  // Load services - STAFF SPECIFIC (shared by all staff in salon)
   const loadServices = useCallback(async (salonId) => {
     try {
       const servicesSnapshot = await getDocs(
@@ -255,27 +254,24 @@ const StaffDashboard = () => {
     }
   }, []);
 
-  // Load today's work - SIMPLIFIED
+  // Load today's work - STAFF SPECIFIC
   const loadTodaysWork = useCallback(async (staffId, salonId) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Simple query that doesn't need composite index
+      // Query only this staff's work for this salon
       const workQuery = query(
         collection(db, 'workLogs'),
-        where('staffId', '==', staffId)
+        where('staffId', '==', staffId),
+        where('salonId', '==', salonId),
+        where('date', '==', today)
       );
       
       const snapshot = await getDocs(workQuery);
-      const allWork = snapshot.docs.map(doc => ({
+      const todayWork = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      
-      // Filter in JavaScript
-      const todayWork = allWork.filter(work => 
-        work.salonId === salonId && work.date === today
-      );
       
       // Sort by timestamp
       todayWork.sort((a, b) => {
@@ -291,15 +287,16 @@ const StaffDashboard = () => {
     }
   }, []);
 
-  // Load stats
+  // Load stats - STAFF SPECIFIC
   const loadStats = useCallback(async (staffId, salonId) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Get work logs
+      // Get work logs for this staff only
       const workQuery = query(
         collection(db, 'workLogs'),
-        where('staffId', '==', staffId)
+        where('staffId', '==', staffId),
+        where('salonId', '==', salonId)
       );
       
       const workSnapshot = await getDocs(workQuery);
@@ -310,33 +307,32 @@ const StaffDashboard = () => {
       
       workSnapshot.docs.forEach(doc => {
         const work = doc.data();
-        if (work.salonId === salonId) {
-          const price = parseFloat(work.servicePrice) || 0;
-          totalEarnings += price;
-          
+        const price = parseFloat(work.servicePrice) || 0;
+        totalEarnings += price;
+        
+        if (work.date === today) {
+          todayEarnings += price;
+        }
+        
+        if (work.client && work.client.trim() !== '' && work.client !== 'Walk-in') {
+          uniqueClients.add(work.client.trim().toLowerCase());
           if (work.date === today) {
-            todayEarnings += price;
-          }
-          
-          if (work.client && work.client.trim() !== '') {
-            uniqueClients.add(work.client.trim().toLowerCase());
-            if (work.date === today) {
-              todayClients.add(work.client.trim().toLowerCase());
-            }
+            todayClients.add(work.client.trim().toLowerCase());
           }
         }
       });
       
-      // Get forms
+      // Get forms for this staff only
       const formsQuery = query(
         collection(db, 'consultations'),
-        where('salonId', '==', salonId)
+        where('salonId', '==', salonId),
+        where('assignedStaffId', '==', staffId)
       );
       
       const formsSnapshot = await getDocs(formsQuery);
       formsSnapshot.docs.forEach(doc => {
         const form = doc.data();
-        if (form.servedByStaffId === staffId && form.clientName) {
+        if (form.clientName) {
           uniqueClients.add(form.clientName.trim().toLowerCase());
           if (form.dateServed === today) {
             todayClients.add(form.clientName.trim().toLowerCase());
@@ -382,9 +378,11 @@ const StaffDashboard = () => {
             if (salonSnap.exists()) {
               setStaff(staffData);
               setSalon({ id: salonSnap.id, ...salonSnap.data() });
+              
+              // Load all data for this specific staff
               await checkClockStatus(staffData.id, salonId);
               await loadServices(salonId);
-              await listenToClientForms(salonId);
+              await listenToClientForms(salonId, staffData.id); // Pass staff ID
               await loadTodaysWork(staffData.id, salonId);
               await loadMyForms(staffData.id, salonId);
               await loadStats(staffData.id, salonId);
@@ -405,7 +403,21 @@ const StaffDashboard = () => {
     if (code) findStaff();
   }, [code, checkClockStatus, listenToClientForms, loadMyForms, loadServices, loadTodaysWork, loadStats]);
 
-  // CLOCK IN
+  // Get Form Link with Staff ID
+  const getFormLink = () => {
+    if (staff && staff.id) {
+      return `${window.location.origin}/client/${salon.id}?staffId=${staff.id}`;
+    }
+    return `${window.location.origin}/client/${salon.id}`;
+  };
+
+  // Generate QR Code URL (simple)
+  const getQRCodeUrl = () => {
+    const formLink = getFormLink();
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(formLink)}`;
+  };
+
+  // CLOCK IN - STAFF SPECIFIC
   const handleClockIn = async () => {
     try {
       const now = new Date();
@@ -437,7 +449,7 @@ const StaffDashboard = () => {
     }
   };
 
-  // CLOCK OUT
+  // CLOCK OUT - STAFF SPECIFIC
   const handleClockOut = async () => {
     try {
       const now = new Date();
@@ -466,7 +478,7 @@ const StaffDashboard = () => {
     }
   };
 
-  // LOG WORK
+  // LOG WORK - STAFF SPECIFIC
   const handleLogWork = async () => {
     if (!newWork.serviceId || !newWork.price) {
       showToast('Please select a service and enter price', 'warning');
@@ -503,8 +515,8 @@ const StaffDashboard = () => {
         ...prev,
         totalEarnings: (parseFloat(prev.totalEarnings) + parseFloat(newWork.price)).toFixed(2),
         todayEarnings: (parseFloat(prev.todayEarnings) + parseFloat(newWork.price)).toFixed(2),
-        totalClients: prev.totalClients + (clientName !== 'Walk-in' ? 1 : 0),
-        todayClients: prev.todayClients + (clientName !== 'Walk-in' ? 1 : 0)
+        totalClients: clientName !== 'Walk-in' ? prev.totalClients + 1 : prev.totalClients,
+        todayClients: clientName !== 'Walk-in' ? prev.todayClients + 1 : prev.todayClients
       }));
       
       // Reset form and close modal
@@ -526,7 +538,7 @@ const StaffDashboard = () => {
     }
   };
 
-  // CLAIM FORM
+  // CLAIM FORM - STAFF SPECIFIC
   const claimForm = async (formId, formData) => {
     try {
       await updateDoc(doc(db, 'consultations', formId), {
@@ -536,7 +548,15 @@ const StaffDashboard = () => {
         claimedAt: serverTimestamp()
       });
       
-      setClientForms(prev => prev.filter(form => form.id !== formId));
+      // Update local state
+      setClientForms(prev => 
+        prev.map(form => 
+          form.id === formId 
+            ? { ...form, status: 'claimed', claimedBy: staff.name, claimedById: staff.id }
+            : form
+        )
+      );
+      
       showToast('Form claimed successfully!', 'success');
       
     } catch (error) {
@@ -545,7 +565,7 @@ const StaffDashboard = () => {
     }
   };
 
-  // MARK FORM AS SERVED
+  // MARK FORM AS SERVED - STAFF SPECIFIC
   const markFormAsServed = async (formId, formData) => {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -572,10 +592,14 @@ const StaffDashboard = () => {
         status: 'served'
       };
       
-      setTodaysForms(prev => [servedForm, ...prev]);
-      setAllMyForms(prev => [servedForm, ...prev]);
+      // Remove from client forms
       setClientForms(prev => prev.filter(form => form.id !== formId));
       
+      // Add to today's forms
+      setTodaysForms(prev => [servedForm, ...prev]);
+      setAllMyForms(prev => [servedForm, ...prev]);
+      
+      // Update stats
       if (formData.clientName) {
         setStats(prev => ({
           ...prev,
@@ -597,11 +621,6 @@ const StaffDashboard = () => {
     markFormAsServed(formId, showFormDetails);
   };
 
-  // GET FORM LINK
-  const getFormLink = () => {
-    return `${window.location.origin}/client/${salon.id}`;
-  };
-
   // COPY FORM LINK
   const copyFormLink = () => {
     navigator.clipboard.writeText(getFormLink())
@@ -611,12 +630,6 @@ const StaffDashboard = () => {
       .catch(() => {
         showToast('Failed to copy link. Please copy manually.', 'error');
       });
-  };
-
-  // Generate QR Code URL (simple)
-  const getQRCodeUrl = () => {
-    const formLink = getFormLink();
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(formLink)}`;
   };
 
   // SHARE VIA WHATSAPP
@@ -747,7 +760,7 @@ const StaffDashboard = () => {
               <div className="stat-icon">📋</div>
               <div className="stat-details">
                 <div className="stat-label">Forms</div>
-                <div className="stat-value">{todaysForms.length}</div>
+                <div className="stat-value">{clientForms.length}</div>
               </div>
             </div>
           </div>
@@ -775,9 +788,9 @@ const StaffDashboard = () => {
         {/* AVAILABLE CLIENT FORMS */}
         {clientForms.length > 0 ? (
           <section className="forms-notification">
-            <div className="notification-header">
-              <span className="notification-badge">{clientForms.length}</span>
-              <h3>Available Client Forms</h3>
+            <div className="section-header">
+              <h3>Your Client Forms</h3>
+              <span className="badge">{clientForms.length}</span>
             </div>
             
             <div className="forms-list">
@@ -802,6 +815,9 @@ const StaffDashboard = () => {
                     {form.allergies && (
                       <span className="form-warning">⚠️ Allergies</span>
                     )}
+                    {form.status === 'claimed' && (
+                      <span className="claimed-badge">🟡 Claimed</span>
+                    )}
                   </div>
                   <div className="form-arrow">→</div>
                 </div>
@@ -810,7 +826,8 @@ const StaffDashboard = () => {
           </section>
         ) : (
           <div className="no-forms-message">
-            <p>No new client forms available.</p>
+            <p>No client forms assigned to you yet.</p>
+            <small>Share your form link with clients to get forms.</small>
           </div>
         )}
 
@@ -981,6 +998,16 @@ const StaffDashboard = () => {
             <div className="stats-grid-detailed">
               <div className="stat-card">
                 <div className="stat-card-icon" style={{ background: '#FEF3C7', color: '#92400E' }}>
+                  💰
+                </div>
+                <div className="stat-card-content">
+                  <div className="stat-card-label">Total Earnings</div>
+                  <div className="stat-card-value">R{stats.totalEarnings}</div>
+                </div>
+              </div>
+              
+              <div className="stat-card">
+                <div className="stat-card-icon" style={{ background: '#DBEAFE', color: '#1E40AF' }}>
                   👥
                 </div>
                 <div className="stat-card-content">
@@ -990,22 +1017,12 @@ const StaffDashboard = () => {
               </div>
               
               <div className="stat-card">
-                <div className="stat-card-icon" style={{ background: '#DBEAFE', color: '#1E40AF' }}>
+                <div className="stat-card-icon" style={{ background: '#FCE7F3', color: '#9D174D' }}>
                   📋
                 </div>
                 <div className="stat-card-content">
                   <div className="stat-card-label">Forms Served</div>
                   <div className="stat-card-value">{allMyForms.length}</div>
-                </div>
-              </div>
-              
-              <div className="stat-card">
-                <div className="stat-card-icon" style={{ background: '#FCE7F3', color: '#9D174D' }}>
-                  💼
-                </div>
-                <div className="stat-card-content">
-                  <div className="stat-card-label">Services Done</div>
-                  <div className="stat-card-value">{todaysWork.length}</div>
                 </div>
               </div>
             </div>
@@ -1047,13 +1064,24 @@ const StaffDashboard = () => {
         <div className="modal" onClick={() => setShowShareForm(false)}>
           <div className="modal-content share-form-modal" onClick={e => e.stopPropagation()}>
             <div className="share-form-header">
-              <h2>Share Client Form</h2>
+              <h2>Share Your Client Form</h2>
               <button 
                 className="close-btn"
                 onClick={() => setShowShareForm(false)}
               >
                 ×
               </button>
+            </div>
+            
+            {/* Staff info banner */}
+            <div className="staff-link-banner">
+              <div className="staff-avatar">
+                {staff.name?.charAt(0) || 'S'}
+              </div>
+              <div className="staff-info">
+                <strong>Forms submitted via this link will come directly to you:</strong>
+                <p>{staff.name}</p>
+              </div>
             </div>
             
             <p>Share this with your client:</p>
@@ -1110,7 +1138,7 @@ const StaffDashboard = () => {
               <p>1. Scan QR code or click link</p>
               <p>2. Fill health & service information</p>
               <p>3. Submit form</p>
-              <p>4. Form will appear here automatically</p>
+              <p>4. Form will appear <strong>in your dashboard only</strong></p>
             </div>
           </div>
         </div>
@@ -1214,13 +1242,15 @@ const StaffDashboard = () => {
               
               {showFormDetails.isAvailable && !showFormDetails.isServed && (
                 <>
-                  <button
-                    className="btn-warning"
-                    onClick={() => claimForm(showFormDetails.id, showFormDetails)}
-                    style={{ background: '#F59E0B' }}
-                  >
-                    🟡 Claim Form
-                  </button>
+                  {showFormDetails.status !== 'claimed' && (
+                    <button
+                      className="btn-warning"
+                      onClick={() => claimForm(showFormDetails.id, showFormDetails)}
+                      style={{ background: '#F59E0B' }}
+                    >
+                      🟡 Claim Form
+                    </button>
+                  )}
                   
                   <button
                     className="btn-primary"

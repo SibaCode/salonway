@@ -716,7 +716,7 @@ useEffect(() => {
                         fontWeight: '700',
                         color: 'var(--primary-color)'
                       }}>
-                        ${service.price}
+                        R{service.price}
                       </div>
                     </div>
 

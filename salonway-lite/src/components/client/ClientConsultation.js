@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom'; // ADD useSearchParams
 import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import './css/ClientConsultation.css';
 
 const ClientConsultation = () => {
   const { salonId } = useParams();
+  const [searchParams] = useSearchParams(); // ADD THIS LINE
   const [salon, setSalon] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
@@ -38,16 +39,35 @@ const ClientConsultation = () => {
     consentData: false,
   });
 
-  // Get salon data
+  // Get staffId from URL
+  const staffId = searchParams.get('staffId');
+  const [assignedStaffName, setAssignedStaffName] = useState('');
+
+  // Get salon data AND staff name
   useEffect(() => {
     const fetchSalon = async () => {
       if (!salonId) return;
       
       try {
+        // Fetch salon data
         const salonDoc = await getDoc(doc(db, 'salons', salonId));
         if (salonDoc.exists()) {
           setSalon({ id: salonDoc.id, ...salonDoc.data() });
         }
+
+        // If staffId exists in URL, fetch staff name
+        if (staffId) {
+          try {
+            const staffDoc = await getDoc(doc(db, 'salons', salonId, 'staff', staffId));
+            if (staffDoc.exists()) {
+              setAssignedStaffName(staffDoc.data().name);
+              console.log('Form assigned to staff:', staffDoc.data().name);
+            }
+          } catch (staffError) {
+            console.error('Error fetching staff:', staffError);
+          }
+        }
+
       } catch (error) {
         console.error('Error fetching salon:', error);
       } finally {
@@ -56,7 +76,7 @@ const ClientConsultation = () => {
     };
 
     fetchSalon();
-  }, [salonId]);
+  }, [salonId, staffId]); // Add staffId to dependencies
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -68,7 +88,7 @@ const ClientConsultation = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-      const accessCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const accessCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     // Validate required fields
     if (!formData.fullName || !formData.phone || !formData.consentService) {
@@ -78,13 +98,17 @@ const ClientConsultation = () => {
 
     try {
       const consultationData = {
-
-           status: 'new',
-       createdAt: serverTimestamp(),
+        status: 'new',
+        createdAt: serverTimestamp(),
         salonId: salonId,
         salonName: salon?.name || '',
-         accessCode: accessCode,  // Add this line
-    date: new Date().toISOString().split('T')[0],
+        accessCode: accessCode,
+        date: new Date().toISOString().split('T')[0],
+        
+        // STAFF ASSIGNMENT - ADD THIS
+        assignedStaffId: staffId || '', // Save staffId from URL
+        assignedStaffName: assignedStaffName || '', // Save staff name
+        
         // Client Info
         clientName: formData.fullName,
         clientPhone: formData.phone,
@@ -111,11 +135,14 @@ const ClientConsultation = () => {
         consentData: formData.consentData,
         
         // System
-        // status: 'new',
         source: 'online_form',
-        // createdAt: serverTimestamp(),
         submittedAt: new Date().toISOString()
       };
+
+      console.log('Submitting form with staff assignment:', {
+        assignedStaffId: staffId,
+        assignedStaffName: assignedStaffName
+      });
 
       // Save to Firestore
       await addDoc(collection(db, 'consultations'), consultationData);
@@ -180,6 +207,20 @@ const ClientConsultation = () => {
           <div className="success-icon">✅</div>
           <h2>Thank You!</h2>
           <p>Your consultation form has been submitted to {salon.name}.</p>
+          
+          {/* Show which staff it's assigned to */}
+          {assignedStaffName && (
+            <div className="staff-assignment-notice">
+              <div className="staff-info">
+                <strong>Form assigned to:</strong>
+                <p>{assignedStaffName}</p>
+              </div>
+              <p className="staff-note">
+                {assignedStaffName} will contact you directly about your appointment.
+              </p>
+            </div>
+          )}
+          
           <p className="success-note">
             A staff member will contact you shortly to discuss your service.
           </p>
@@ -198,7 +239,21 @@ const ClientConsultation = () => {
       '--primary': primaryColor,
       '--secondary': secondaryColor 
     }}>
-      {/* Header */}
+      {/* Header with Staff Assignment Notice */}
+      {assignedStaffName && (
+        <div className="staff-banner" style={{ background: primaryColor }}>
+          <div className="staff-banner-content">
+            <div className="staff-avatar">
+              {assignedStaffName.charAt(0)}
+            </div>
+            <div className="staff-banner-info">
+              <h3>Form for {assignedStaffName}</h3>
+              <p>Your consultation will be handled directly by your stylist</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="consultation-header">
         <div className="salon-branding">
           {salon.logoUrl ? (
@@ -470,6 +525,14 @@ const ClientConsultation = () => {
           >
             Submit Consultation Form
           </button>
+          
+          {/* Show staff assignment info */}
+          {assignedStaffName && (
+            <p className="staff-submit-note">
+              This form will be sent directly to <strong>{assignedStaffName}</strong>
+            </p>
+          )}
+          
           <p className="form-footer">
             A staff member from {salon.name} will contact you within 24 hours.
           </p>

@@ -185,7 +185,7 @@ useEffect(() => {
         }}>
           Client Management
         </h2>
-        <p style={{ color: secondaryColor, fontSize: '14px', margin: 0 }}>
+        <p style={{ color: '#212529', fontSize: '14px', margin: 0 }}>
           Manage all clients and consultations
         </p>
       </div>
@@ -216,7 +216,7 @@ useEffect(() => {
           onClick={() => setShowAddForm(true)}
           style={{
             padding: isMobile ? '12px 16px' : '12px 24px',
-            background: '#28a745',
+            background: secondaryColor,
             color: 'white',
             border: 'none',
             borderRadius: '8px',
@@ -247,7 +247,7 @@ useEffect(() => {
           border: `1px solid ${borderColor}`,
           textAlign: 'center'
         }}>
-          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: secondaryColor }}>Total Clients</p>
+          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#212529' }}>Total Clients</p>
           <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: primaryColor }}>
             {totalEntries}
           </h3>
@@ -260,7 +260,7 @@ useEffect(() => {
           border: `1px solid ${borderColor}`,
           textAlign: 'center'
         }}>
-          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: secondaryColor }}>Form Submissions</p>
+          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#212529' }}>Form Submissions</p>
           <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: primaryColor }}>
             {formSubmissions}
           </h3>
@@ -273,8 +273,8 @@ useEffect(() => {
           border: `1px solid ${borderColor}`,
           textAlign: 'center'
         }}>
-          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: secondaryColor }}>Manual Entries</p>
-          <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#28a745' }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#212529' }}>Manual Entries</p>
+          <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color:secondaryColor }}>
             {manualEntries}
           </h3>
         </div>
@@ -286,7 +286,7 @@ useEffect(() => {
           border: `1px solid ${borderColor}`,
           textAlign: 'center'
         }}>
-          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: secondaryColor }}>New</p>
+          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#212529' }}>New</p>
           <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#ffc107' }}>
             {newClients}
           </h3>
@@ -528,7 +528,7 @@ useEffect(() => {
                         {client.source === 'manual' ? 'Manual' : 'Form'}
                       </span>
                     </div>
-                    <div style={{ fontSize: '14px', color: secondaryColor }}>
+                    <div style={{ fontSize: '14px', color: '#212529' }}>
                       📞 {client.clientPhone || 'No phone'} • ✉️ {client.clientEmail || 'No email'}
                     </div>
                     {client.desiredService && (
@@ -539,7 +539,7 @@ useEffect(() => {
                   </div>
                   
                   <div style={{ flex: 1, textAlign: 'right' }}>
-                    <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: secondaryColor }}>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#212529' }}>
                       {client.date || client.createdAt?.toDate?.().toLocaleDateString() || 'Recent'}
                     </p>
                     <select
@@ -629,7 +629,7 @@ useEffect(() => {
               ✕
             </button>
             
-            <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600', color: '#212529' }}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600', color: secondaryColor }}>
               Add New Client
             </h3>
             
