@@ -145,322 +145,218 @@ const AdminDashboard = () => {
   };
 
   // CreateSalon component
-  const CreateSalon = ({ onCreate, onBack }) => {
-    const [step, setStep] = useState(1);
-    const [formData, setFormData] = useState({
-      name: '',
-      ownerName: '',
-      ownerEmail: '',
-      ownerPassword: '',
-      primaryColor: '#3B82F6',
-      secondaryColor: '#10B981'
+// src/components/admin/AdminDashboard.js - Only showing the updated CreateSalon component
+// Replace the existing CreateSalon component with this:
+
+const CreateSalon = ({ onCreate, onBack }) => {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    name: '',
+    ownerName: '',
+    ownerEmail: '',
+    ownerPassword: '',
+    primaryColor: '#3B82F6',
+    secondaryColor: '#10B981'
+  });
+  const [createLoading, setCreateLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [createdData, setCreatedData] = useState(null);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
     });
-    const [createLoading, setCreateLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
-    const [createdData, setCreatedData] = useState(null);
+  };
 
-    const handleChange = (e) => {
-      setFormData({
-        ...formData,
-        [e.target.name]: e.target.value
+  // Simple password generator for owners
+  const generateSecurePassword = () => {
+    const length = 12;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setCreateLoading(true);
+    
+    // Use provided password or generate one
+    const ownerPassword = formData.ownerPassword || generateSecurePassword();
+    
+    const salonData = {
+      name: formData.name,
+      ownerName: formData.ownerName,
+      ownerEmail: formData.ownerEmail.toLowerCase().trim(),
+      ownerPassword: ownerPassword, // Store as plain text (for now)
+      primaryColor: formData.primaryColor,
+      secondaryColor: formData.secondaryColor,
+      status: 'active',
+      setupCompleted: false,
+      staffCount: 0,
+      revenue: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    console.log('📤 Creating salon:', salonData);
+    
+    const result = await onCreate(salonData);
+    
+    if (result.success) {
+      setCreatedData({
+        salonId: result.salonId,
+        ownerPassword: ownerPassword,
+        ownerEmail: formData.ownerEmail,
+        salonName: formData.name
       });
-    };
+      setSuccess(true);
+      setStep(3);
+    } else {
+      alert(`Error: ${result.error}`);
+    }
+    
+    setCreateLoading(false);
+  };
 
-    const generatePassword = () => {
-      return Math.random().toString(36).slice(-10);
-    };
-
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setCreateLoading(true);
-      
-      const tempPassword = generatePassword();
-      const salonData = {
-        ...formData,
-        tempPassword
-      };
-      
-      console.log('📤 Submitting salon data:', salonData);
-      
-      const result = await onCreate(salonData);
-      console.log('📥 Result from onCreate:', result);
-      
-      if (result.success) {
-        setCreatedData({
-          salonId: result.salonId,
-          tempPassword,
-          ownerEmail: formData.ownerEmail,
-          salonName: formData.name
-        });
-        setSuccess(true);
-        setStep(3);
-      } else {
-        alert(`Error: ${result.error}`);
-      }
-      
-      setCreateLoading(false);
-    };
-
-    // Step 1: Basic Info
-    if (step === 1) {
-      return (
-        <div style={{ padding: '20px' }}>
-          <button onClick={onBack} style={{ marginBottom: '20px', background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}>
-            ← Back to Dashboard
-          </button>
-          
-          <h1 style={{ marginBottom: '10px' }}>Create Salon</h1>
-          <p style={{ color: '#666', marginBottom: '30px' }}>Step 1: Basic information</p>
-          
-          <div style={{ background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <form onSubmit={(e) => { e.preventDefault(); setStep(2); }}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Salon Name *</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
-                  placeholder="Sunrise Salon"
-                  required
-                />
-              </div>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Owner Name *</label>
-                <input
-                  type="text"
-                  name="ownerName"
-                  value={formData.ownerName}
-                  onChange={handleChange}
-                  style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
-                  placeholder="Sarah Johnson"
-                  required
-                />
-              </div>
-              
-              <div style={{ marginBottom: '30px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Owner Email *</label>
-                <input
-                  type="email"
-                  name="ownerEmail"
-                  value={formData.ownerEmail}
-                  onChange={handleChange}
-                  style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
-                  placeholder="sarah@email.com"
-                  required
-                />
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Owner Password *</label>
-                <div style={{ position: 'relative' }}>
-                  <FaLock style={{
-                    position: 'absolute',
-                    left: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#9CA3AF'
-                  }} />
-                  <input
-                    type="password"
-                    name="ownerPassword"
-                    value={formData.ownerPassword}
-                    onChange={handleChange}
-                    style={{ width: '100%', padding: '12px 12px 12px 40px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '16px' }}
-                    placeholder="Create a password for the owner"
-                    required
-                  />
-                </div>
-                <small style={{ color: '#6B7280', fontSize: '12px' }}>Create a password for the salon owner to login</small>
-              </div>
-              <button 
-                type="submit"
-                style={{
-                  width: '100%',
-                  padding: '15px',
-                  background: '#3B82F6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
+  // Step 1: Basic Info
+  if (step === 1) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <button onClick={onBack} style={{ 
+          marginBottom: '20px', 
+          background: 'none', 
+          border: 'none', 
+          color: '#666', 
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          ← Back to Dashboard
+        </button>
+        
+        <h1 style={{ marginBottom: '10px' }}>Create New Salon</h1>
+        <p style={{ color: '#666', marginBottom: '30px' }}>Step 1: Enter salon details</p>
+        
+        <div style={{ 
+          background: 'white', 
+          padding: '25px', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)' 
+        }}>
+          <form onSubmit={(e) => { e.preventDefault(); setStep(2); }}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                Salon Name *
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  border: '1px solid #ddd', 
+                  borderRadius: '8px', 
                   fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
+                  outline: 'none'
                 }}
-              >
-                Continue
-              </button>
-            </form>
-          </div>
-        </div>
-      );
-    }
+                placeholder="Sunrise Beauty Salon"
+                required
+              />
+            </div>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                Owner Name *
+              </label>
+              <input
+                type="text"
+                name="ownerName"
+                value={formData.ownerName}
+                onChange={handleChange}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  border: '1px solid #ddd', 
+                  borderRadius: '8px', 
+                  fontSize: '16px',
+                  outline: 'none'
+                }}
+                placeholder="Sarah Johnson"
+                required
+              />
+            </div>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                Owner Email *
+              </label>
+              <input
+                type="email"
+                name="ownerEmail"
+                value={formData.ownerEmail}
+                onChange={handleChange}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  border: '1px solid #ddd', 
+                  borderRadius: '8px', 
+                  fontSize: '16px',
+                  outline: 'none'
+                }}
+                placeholder="sarah@example.com"
+                required
+              />
+              <small style={{ color: '#6B7280', fontSize: '12px', display: 'block', marginTop: '6px' }}>
+                This email will be used for login
+              </small>
+            </div>
 
-    // Step 2: Branding
-    if (step === 2) {
-      return (
-        <div style={{ padding: '20px' }}>
-          <button onClick={() => setStep(1)} style={{ marginBottom: '20px', background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}>
-            ← Back
-          </button>
-          
-          <h1 style={{ marginBottom: '10px' }}>Branding</h1>
-          <p style={{ color: '#666', marginBottom: '30px' }}>Step 2: Choose colors</p>
-          
-          <div style={{ background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '25px' }}>
-                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '500' }}>Primary Color</label>
+            <div style={{ marginBottom: '30px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                Owner Password *
+              </label>
+              <div style={{ position: 'relative' }}>
+                <FaLock style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9CA3AF'
+                }} />
                 <input
-                  type="color"
-                  name="primaryColor"
-                  value={formData.primaryColor}
+                  type="password"
+                  name="ownerPassword"
+                  value={formData.ownerPassword}
                   onChange={handleChange}
-                  style={{ width: '100%', height: '50px', borderRadius: '8px', cursor: 'pointer' }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px 12px 12px 40px', 
+                    border: '1px solid #ddd', 
+                    borderRadius: '8px', 
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                  placeholder="Set a password for owner"
+                  required
+                  minLength="6"
                 />
               </div>
-              
-              <div style={{ marginBottom: '30px' }}>
-                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '500' }}>Secondary Color</label>
-                <input
-                  type="color"
-                  name="secondaryColor"
-                  value={formData.secondaryColor}
-                  onChange={handleChange}
-                  style={{ width: '100%', height: '50px', borderRadius: '8px', cursor: 'pointer' }}
-                />
-              </div>
-              
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <button 
-                  type="button"
-                  onClick={() => setStep(1)}
-                  style={{
-                    flex: 1,
-                    padding: '15px',
-                    background: '#F3F4F6',
-                    color: '#374151',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Back
-                </button>
-                
-                <button 
-                  type="submit"
-                  disabled={createLoading}
-                  style={{
-                    flex: 2,
-                    padding: '15px',
-                    background: createLoading ? '#9CA3AF' : '#3B82F6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: createLoading ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {createLoading ? 'Creating...' : 'Create Salon'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      );
-    }
-
-    // Step 3: Success
-    if (step === 3 && success && createdData) {
-      return (
-        <div style={{ padding: '20px', textAlign: 'center' }}>
-          <div style={{ fontSize: '60px', color: '#10B981', margin: '30px 0' }}>✓</div>
-          
-          <h1 style={{ marginBottom: '10px' }}>Salon Created!</h1>
-          <p style={{ color: '#666', marginBottom: '40px' }}>Share these details with the owner</p>
-          
-          <div style={{ 
-            background: '#F0F9FF', 
-            padding: '25px', 
-            borderRadius: '12px',
-            marginBottom: '30px',
-            textAlign: 'left'
-          }}>
-            <h3 style={{ marginBottom: '20px', color: '#1E40AF' }}>Login Details</h3>
-            
-            <div style={{ marginBottom: '15px' }}>
-              <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '5px' }}>Owner Email</div>
-              <div style={{ fontSize: '16px', fontWeight: '500', padding: '12px', background: 'white', borderRadius: '8px' }}>
-                {createdData.ownerEmail}
-              </div>
+              <small style={{ color: '#6B7280', fontSize: '12px', display: 'block', marginTop: '6px' }}>
+                Minimum 6 characters. The owner will use this to login.
+              </small>
             </div>
-            
-            <div style={{ marginBottom: '15px' }}>
-              <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '5px' }}>Temporary Password</div>
-              <div style={{ 
-                fontSize: '18px', 
-                fontWeight: '600', 
-                fontFamily: 'monospace',
-                padding: '12px', 
-                background: '#EFF6FF', 
-                borderRadius: '8px',
-                color: '#1E40AF',
-                letterSpacing: '1px'
-              }}>
-                {createdData.tempPassword}
-              </div>
-            </div>
-            
-            <div>
-              <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '5px' }}>Login URL</div>
-              <div style={{ fontSize: '16px', fontWeight: '500', padding: '12px', background: 'white', borderRadius: '8px' }}>
-                {window.location.origin}/owner/login
-              </div>
-            </div>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <button 
-              onClick={() => {
-                const text = `Salon: ${createdData.salonName}\nLogin: ${createdData.ownerEmail}\nPassword: ${createdData.tempPassword}\nURL: ${window.location.origin}/owner/login`;
-                navigator.clipboard.writeText(text);
-                alert('Copied to clipboard!');
-              }}
-              style={{
-                flex: 1,
-                padding: '15px',
-                background: '#F3F4F6',
-                color: '#374151',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Copy Details
-            </button>
             
             <button 
-              onClick={() => {
-                setStep(1);
-                setSuccess(false);
-                setFormData({
-                  name: '',
-                  ownerName: '',
-                  ownerEmail: '',
-                  ownerPassword: '',
-                  primaryColor: '#3B82F6',
-                  secondaryColor: '#10B981'
-                });
-                onBack();
-              }}
+              type="submit"
               style={{
-                flex: 1,
+                width: '100%',
                 padding: '15px',
                 background: '#3B82F6',
                 color: 'white',
@@ -468,19 +364,384 @@ const AdminDashboard = () => {
                 borderRadius: '8px',
                 fontSize: '16px',
                 fontWeight: '600',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'background 0.2s'
               }}
+              onMouseOver={(e) => e.target.style.background = '#2563EB'}
+              onMouseOut={(e) => e.target.style.background = '#3B82F6'}
             >
-              Done
+              Continue to Branding
             </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Branding
+  if (step === 2) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <button onClick={() => setStep(1)} style={{ 
+          marginBottom: '20px', 
+          background: 'none', 
+          border: 'none', 
+          color: '#666', 
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          ← Back to Details
+        </button>
+        
+        <h1 style={{ marginBottom: '10px' }}>Branding & Colors</h1>
+        <p style={{ color: '#666', marginBottom: '30px' }}>Step 2: Customize salon appearance</p>
+        
+        <div style={{ 
+          background: 'white', 
+          padding: '25px', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)' 
+        }}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '25px' }}>
+              <label style={{ display: 'block', marginBottom: '10px', fontWeight: '500' }}>
+                Primary Color
+              </label>
+              <input
+                type="color"
+                name="primaryColor"
+                value={formData.primaryColor}
+                onChange={handleChange}
+                style={{ 
+                  width: '100%', 
+                  height: '60px', 
+                  borderRadius: '8px', 
+                  cursor: 'pointer',
+                  border: 'none'
+                }}
+              />
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                marginTop: '10px',
+                padding: '10px',
+                background: formData.primaryColor + '20',
+                borderRadius: '6px'
+              }}>
+                <div style={{ 
+                  width: '30px', 
+                  height: '30px', 
+                  background: formData.primaryColor,
+                  borderRadius: '4px',
+                  marginRight: '10px'
+                }}></div>
+                <span style={{ color: '#666', fontSize: '14px' }}>
+                  {formData.primaryColor}
+                </span>
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '30px' }}>
+              <label style={{ display: 'block', marginBottom: '10px', fontWeight: '500' }}>
+                Secondary Color
+              </label>
+              <input
+                type="color"
+                name="secondaryColor"
+                value={formData.secondaryColor}
+                onChange={handleChange}
+                style={{ 
+                  width: '100%', 
+                  height: '60px', 
+                  borderRadius: '8px', 
+                  cursor: 'pointer',
+                  border: 'none'
+                }}
+              />
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                marginTop: '10px',
+                padding: '10px',
+                background: formData.secondaryColor + '20',
+                borderRadius: '6px'
+              }}>
+                <div style={{ 
+                  width: '30px', 
+                  height: '30px', 
+                  background: formData.secondaryColor,
+                  borderRadius: '4px',
+                  marginRight: '10px'
+                }}></div>
+                <span style={{ color: '#666', fontSize: '14px' }}>
+                  {formData.secondaryColor}
+                </span>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button 
+                type="button"
+                onClick={() => setStep(1)}
+                style={{
+                  flex: 1,
+                  padding: '15px',
+                  background: '#F3F4F6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#E5E7EB'}
+                onMouseOut={(e) => e.target.style.background = '#F3F4F6'}
+              >
+                Back
+              </button>
+              
+              <button 
+                type="submit"
+                disabled={createLoading}
+                style={{
+                  flex: 2,
+                  padding: '15px',
+                  background: createLoading ? '#9CA3AF' : '#3B82F6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: createLoading ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  if (!createLoading) e.target.style.background = '#2563EB';
+                }}
+                onMouseOut={(e) => {
+                  if (!createLoading) e.target.style.background = '#3B82F6';
+                }}
+              >
+                {createLoading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <span style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderTop: '2px solid white',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></span>
+                    Creating...
+                  </span>
+                ) : 'Create Salon'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: Success
+  if (step === 3 && success && createdData) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <div style={{ 
+          width: '80px', 
+          height: '80px', 
+          background: '#10B981',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '30px auto',
+          color: 'white',
+          fontSize: '40px'
+        }}>
+          ✓
+        </div>
+        
+        <h1 style={{ marginBottom: '10px' }}>Salon Created Successfully!</h1>
+        <p style={{ color: '#666', marginBottom: '40px', fontSize: '16px' }}>
+          Share these login details with the owner
+        </p>
+        
+        {/* Credentials Card */}
+        <div style={{ 
+          background: '#F0F9FF', 
+          padding: '25px', 
+          borderRadius: '12px',
+          marginBottom: '30px',
+          textAlign: 'left',
+          border: '1px solid #BFDBFE'
+        }}>
+          <h3 style={{ 
+            marginBottom: '20px', 
+            color: '#1E40AF',
+            fontSize: '18px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <FaLock /> Login Credentials
+          </h3>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '5px' }}>Salon Name</div>
+            <div style={{ 
+              fontSize: '16px', 
+              fontWeight: '500', 
+              padding: '12px', 
+              background: 'white', 
+              borderRadius: '8px',
+              border: '1px solid #E5E7EB'
+            }}>
+              {createdData.salonName}
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '5px' }}>Login Email</div>
+            <div style={{ 
+              fontSize: '16px', 
+              fontWeight: '500', 
+              padding: '12px', 
+              background: 'white', 
+              borderRadius: '8px',
+              border: '1px solid #E5E7EB'
+            }}>
+              {createdData.ownerEmail}
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '5px' }}>Password</div>
+            <div style={{ 
+              fontSize: '18px', 
+              fontWeight: '600', 
+              fontFamily: 'monospace',
+              padding: '12px', 
+              background: '#EFF6FF', 
+              borderRadius: '8px',
+              color: '#1E40AF',
+              letterSpacing: '1px',
+              border: '1px solid #BFDBFE'
+            }}>
+              {createdData.ownerPassword}
+            </div>
+            <div style={{ fontSize: '13px', color: '#6B7280', marginTop: '6px' }}>
+              This is the password you set during creation
+            </div>
+          </div>
+          
+          <div>
+            <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '5px' }}>Login URL</div>
+            <div style={{ 
+              fontSize: '14px', 
+              fontFamily: 'monospace',
+              padding: '12px', 
+              background: 'white', 
+              borderRadius: '8px',
+              border: '1px solid #E5E7EB',
+              wordBreak: 'break-all'
+            }}>
+              {window.location.origin}/owner/login
+            </div>
           </div>
         </div>
-      );
-    }
+        
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+          <button 
+            onClick={() => {
+              const text = `New Salon Created!\n\nSalon: ${createdData.salonName}\nOwner Email: ${createdData.ownerEmail}\nPassword: ${createdData.ownerPassword}\nLogin URL: ${window.location.origin}/owner/login\n\nPlease save this information securely.`;
+              navigator.clipboard.writeText(text);
+              alert('Credentials copied to clipboard!');
+            }}
+            style={{
+              flex: 1,
+              padding: '15px',
+              background: '#F3F4F6',
+              color: '#374151',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.background = '#E5E7EB'}
+            onMouseOut={(e) => e.target.style.background = '#F3F4F6'}
+          >
+            Copy Details
+          </button>
+          
+          <button 
+            onClick={() => {
+              const message = `Hi,\n\nYour salon "${createdData.salonName}" has been set up!\n\nLogin Details:\nEmail: ${createdData.ownerEmail}\nPassword: ${createdData.ownerPassword}\nLogin URL: ${window.location.origin}/owner/login\n\nPlease login and change your password after first login.\n\nBest regards,\nSalonWay Admin`;
+              window.open(`mailto:${createdData.ownerEmail}?subject=Your SalonWay Login Details&body=${encodeURIComponent(message)}`, '_blank');
+            }}
+            style={{
+              flex: 1,
+              padding: '15px',
+              background: '#3B82F6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.background = '#2563EB'}
+            onMouseOut={(e) => e.target.style.background = '#3B82F6'}
+          >
+            Email Owner
+          </button>
+        </div>
+        
+        <button 
+          onClick={() => {
+            // Reset form and go back to dashboard
+            setStep(1);
+            setSuccess(false);
+            setFormData({
+              name: '',
+              ownerName: '',
+              ownerEmail: '',
+              ownerPassword: '',
+              primaryColor: '#3B82F6',
+              secondaryColor: '#10B981'
+            });
+            onBack();
+          }}
+          style={{
+            width: '100%',
+            padding: '15px',
+            background: '#10B981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background 0.2s'
+          }}
+          onMouseOver={(e) => e.target.style.background = '#059669'}
+          onMouseOut={(e) => e.target.style.background = '#10B981'}
+        >
+          Done
+        </button>
+      </div>
+    );
+  }
 
-    return null;
-  };
-
+  return null;
+};
   // SalonDetailsModal Component
   const SalonDetailsModal = ({ salon, onClose, onResetPassword }) => {
     const [showPassword, setShowPassword] = useState(false);

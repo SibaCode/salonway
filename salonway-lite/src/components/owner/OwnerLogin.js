@@ -1,32 +1,9 @@
-// src/components/owner/OwnerLogin.js - FIXED NAVIGATION
+// src/components/owner/OwnerLogin.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCut, FaLock, FaEnvelope } from 'react-icons/fa';
-
-// Hardcoded valid credentials
-const VALID_CREDENTIALS = [
-  {
-    email: 'test3@gmail.com',
-    password: '51PH1KlYBn@f',
-    salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg',
-    salonName: 'Mamazi1',
-    ownerName: 'Mamazi'
-  },
-  {
-    email: 'client@salon.com',
-    password: 'salon123',
-    salonId: 'YSyWKf5Tuaxq7Y6Qh2Mg',
-    salonName: 'Client Salon',
-    ownerName: 'Salon Owner'
-  },
-  {
-    email: 'thebeautyclub@gmail.com',
-    password: 'I4FfldcaN8Ml',
-    salonId: 'GGXnw4lFKEHB8IpPP99C',
-    salonName: 'The Beauty Club Tes',
-    ownerName: 'Kat Moeti Test'
-  },
-];
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 const OwnerLogin = () => {
   const navigate = useNavigate();
@@ -37,90 +14,67 @@ const OwnerLogin = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    console.log('🔐 Login attempt started...');
     setLoading(true);
     setError('');
 
-    // Simulate network delay (makes it feel real)
-    await new Promise(resolve => setTimeout(resolve, 800));
-
     try {
-      console.log('Checking credentials for:', email.trim());
+      // Clean and validate email
+      const cleanEmail = email.trim().toLowerCase();
       
-      // 1. Check hardcoded credentials first (FAST)
-      const validCredential = VALID_CREDENTIALS.find(
-        cred => cred.email === email.trim() && cred.password === password
-      );
-
-      if (!validCredential) {
-        console.log('❌ Invalid credentials');
-        setError('Invalid email or password');
+      if (!cleanEmail || !password) {
+        setError('Please enter both email and password');
         setLoading(false);
         return;
       }
 
-      console.log('✅ Login successful!');
-      console.log('User:', validCredential.ownerName);
+      console.log('🔐 Attempting login for:', cleanEmail);
+
+      // Query Firestore for salon with matching email
+      const q = query(
+        collection(db, 'salons'),
+        where('ownerEmail', '==', cleanEmail)
+      );
       
-      // 2. Save to localStorage
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        setError('No salon account found with this email');
+        setLoading(false);
+        return;
+      }
+      
+      // Get the first matching salon
+      const salonDoc = querySnapshot.docs[0];
+      const salonData = salonDoc.data();
+      
+      // Check password (Note: In production, use password hashing!)
+      if (salonData.ownerPassword !== password) {
+        setError('Incorrect password');
+        setLoading(false);
+        return;
+      }
+      
+      // Save owner session data
       const ownerData = {
-        salonId: validCredential.salonId,
-        email: validCredential.email,
-        name: validCredential.ownerName,
-        salonName: validCredential.salonName,
+        salonId: salonDoc.id,
+        email: salonData.ownerEmail,
+        name: salonData.ownerName,
+        salonName: salonData.name,
         timestamp: new Date().toISOString()
       };
       
       localStorage.setItem('salonOwner', JSON.stringify(ownerData));
-      console.log('💾 Saved to localStorage:', ownerData);
+      console.log('✅ Login successful:', ownerData.name);
       
-      // 3. IMPORTANT: Clear any React state issues
-      setLoading(false);
-      
-      // 4. Force navigation - MULTIPLE METHODS
-      console.log('🚀 Attempting navigation...');
-      
-      // Method 1: Direct navigation (should work)
+      // Navigate to dashboard
       navigate('/owner/dashboard');
-      
-      // Method 2: Force a state update then navigate
-      setTimeout(() => {
-        console.log('⏰ Timeout navigation attempt...');
-        navigate('/owner/dashboard', { replace: true });
-      }, 100);
-      
-      // Method 3: Fallback - window location
-      setTimeout(() => {
-        console.log('Checking if navigation worked...');
-        if (window.location.pathname !== '/owner/dashboard') {
-          console.log('🔄 Using window.location fallback');
-          window.location.href = '/owner/dashboard';
-        }
-      }, 500);
       
     } catch (error) {
       console.error('❌ Login error:', error);
-      setError('Login failed. Please try again.');
+      setError(error.message || 'Login failed. Please try again.');
+    } finally {
       setLoading(false);
     }
-  };
-
-  // Quick login function for testing
-  const quickLogin = (credential) => {
-    console.log('🚀 Quick login as:', credential.ownerName);
-    setEmail(credential.email);
-    setPassword(credential.password);
-    
-    // Auto-submit after a short delay
-    setTimeout(() => {
-      const form = document.querySelector('form');
-      if (form) {
-        console.log('Submitting form...');
-        form.dispatchEvent(new Event('submit', { cancelable: true }));
-      } else {
-        console.error('Form not found!');
-      }
-    }, 300);
   };
 
   return (
@@ -142,7 +96,7 @@ const OwnerLogin = () => {
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
       }}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{
             width: '80px',
             height: '80px',
@@ -161,58 +115,9 @@ const OwnerLogin = () => {
             SalonWay
           </h1>
           <p style={{ color: '#6B7280', fontSize: '16px' }}>
-            Owner Portal
+            Owner Portal Login
           </p>
         </div>
-
-        {/* Quick Login Buttons (Development Only) */}
-        {process.env.NODE_ENV !== 'production' && (
-          <div style={{
-            background: '#F3F4F6',
-            border: '1px solid #E5E7EB',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '24px'
-          }}>
-            <div style={{ fontSize: '12px', color: '#6B7280', fontWeight: '600', marginBottom: '10px' }}>
-              🧪 DEVELOPMENT LOGINS
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {VALID_CREDENTIALS.map((cred, index) => (
-                <button
-                  key={index}
-                  onClick={() => quickLogin(cred)}
-                  style={{
-                    background: 'white',
-                    border: '1px solid #D1D5DB',
-                    borderRadius: '8px',
-                    padding: '10px 16px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = '#F9FAFB'}
-                  onMouseOut={(e) => e.currentTarget.style.background = 'white'}
-                >
-                  <div>
-                    <div style={{ fontWeight: '500', color: '#1F2937' }}>
-                      {cred.ownerName}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                      {cred.email}
-                    </div>
-                  </div>
-                  <div style={{ color: '#10B981', fontSize: '12px', fontWeight: '600' }}>
-                    LOGIN
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Login Form */}
         <form onSubmit={handleLogin}>
@@ -224,22 +129,16 @@ const OwnerLogin = () => {
               borderRadius: '10px',
               marginBottom: '20px',
               fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
               border: '1px solid #FECACA'
             }}>
-              <div style={{ fontSize: '18px' }}>⚠️</div>
-              <div>
-                <div style={{ fontWeight: '600' }}>Authentication Error</div>
-                <div>{error}</div>
-              </div>
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>Login Error</div>
+              <div>{error}</div>
             </div>
           )}
 
           {/* Email Input */}
           <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="email" style={{
+            <label style={{
               display: 'block',
               marginBottom: '8px',
               fontWeight: '500',
@@ -259,11 +158,9 @@ const OwnerLogin = () => {
               }} />
               <input
                 type="email"
-                id="email"
-                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="owner@salon.com"
+                placeholder="owner@your-salon.com"
                 required
                 disabled={loading}
                 style={{
@@ -272,9 +169,9 @@ const OwnerLogin = () => {
                   border: '1px solid #D1D5DB',
                   borderRadius: '10px',
                   fontSize: '15px',
-                  transition: 'all 0.2s',
                   background: loading ? '#F9FAFB' : 'white',
-                  color: loading ? '#9CA3AF' : '#1F2937'
+                  color: loading ? '#9CA3AF' : '#1F2937',
+                  outline: 'none'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#667eea'}
                 onBlur={(e) => e.target.style.borderColor = '#D1D5DB'}
@@ -284,7 +181,7 @@ const OwnerLogin = () => {
 
           {/* Password Input */}
           <div style={{ marginBottom: '30px' }}>
-            <label htmlFor="password" style={{
+            <label style={{
               display: 'block',
               marginBottom: '8px',
               fontWeight: '500',
@@ -304,11 +201,9 @@ const OwnerLogin = () => {
               }} />
               <input
                 type="password"
-                id="password"
-                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 required
                 disabled={loading}
                 style={{
@@ -317,9 +212,9 @@ const OwnerLogin = () => {
                   border: '1px solid #D1D5DB',
                   borderRadius: '10px',
                   fontSize: '15px',
-                  transition: 'all 0.2s',
                   background: loading ? '#F9FAFB' : 'white',
-                  color: loading ? '#9CA3AF' : '#1F2937'
+                  color: loading ? '#9CA3AF' : '#1F2937',
+                  outline: 'none'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#667eea'}
                 onBlur={(e) => e.target.style.borderColor = '#D1D5DB'}
@@ -341,22 +236,8 @@ const OwnerLogin = () => {
               fontSize: '16px',
               fontWeight: '600',
               cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.3s',
-              opacity: loading ? 0.7 : 1,
               position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseOver={(e) => {
-              if (!loading) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 10px 25px rgba(102, 126, 234, 0.4)';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!loading) {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }
+              transition: 'all 0.2s'
             }}
           >
             {loading ? (
@@ -369,67 +250,46 @@ const OwnerLogin = () => {
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite'
                 }}></span>
-                Authenticating...
+                Signing in...
               </span>
-            ) : 'Login to Dashboard'}
+            ) : 'Sign In'}
           </button>
 
           {/* Help Text */}
           <div style={{ marginTop: '30px', textAlign: 'center' }}>
             <p style={{ color: '#6B7280', fontSize: '14px' }}>
-              Forgot password? <a href="mailto:support@salonway.com" style={{ color: '#667eea', textDecoration: 'none' }}>Contact support</a>
+              Need help? <a 
+                href="mailto:support@salonway.com" 
+                style={{ color: '#667eea', textDecoration: 'none', fontWeight: '500' }}
+              >
+                Contact Support
+              </a>
             </p>
-            <p style={{ color: '#9CA3AF', fontSize: '12px', marginTop: '12px' }}>
-              v1.0.0 • Secure Authentication
+            <p style={{ color: '#9CA3AF', fontSize: '12px', marginTop: '20px' }}>
+              Use the email and password created when your salon was set up
             </p>
           </div>
         </form>
       </div>
 
-      {/* Add spinner animation */}
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
         
-        /* Debug info in console */
-        .debug-info {
-          display: none;
+        button:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        input:focus {
+          border-color: #667eea !important;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
       `}</style>
     </div>
   );
-};
-
-// Add a direct navigation test function (call from console)
-window.testNavigation = () => {
-  console.log('🔧 Testing navigation manually...');
-  const testData = {
-    salonId: 'wTHoxDi4owFzyYf1xhQZ',
-    email: 'thebeautyclub@gmail.com',
-    name: 'Mamazi',
-    salonName: 'The Beauty Club',
-    timestamp: new Date().toISOString()
-  };
- 
-  localStorage.setItem('salonOwner', JSON.stringify(testData));
-  console.log('💾 Saved test data to localStorage');
-  
-  // Try multiple navigation methods
-  const navMethods = [
-    () => window.location.href = '/owner/dashboard',
-    () => window.location.pathname = '/owner/dashboard',
-    () => window.history.pushState({}, '', '/owner/dashboard') && window.location.reload()
-  ];
-  
-  console.log('🚀 Attempting navigation methods...');
-  navMethods.forEach((method, index) => {
-    setTimeout(() => {
-      console.log(`Method ${index + 1}...`);
-      try { method(); } catch(e) { console.error(e); }
-    }, index * 1000);
-  });
 };
 
 export default OwnerLogin;
