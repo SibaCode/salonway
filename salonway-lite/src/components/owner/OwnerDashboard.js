@@ -28,6 +28,7 @@ import {
 import './css/OwnerDashboard.css';
 import ServicesContent from './ServicesContent';
 import ClientsContent from './ClientsContent';
+import ReportsContent from './ReportsContent';
 
 // Toast notification component
 const ToastNotification = ({ message, type = 'success', onClose }) => {
@@ -655,7 +656,10 @@ if (errorState.hasError) {
           )}
           
           {activeTab === 'reports' && (
-            <ReportsContent salonId={salonData.id} />
+            <ReportsContent 
+            salonId={salonData.id} 
+            salonData={salonData} 
+            ownerData={ownerData}/>
           )}
           
           {activeTab === 'settings' && (
@@ -686,7 +690,8 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
     staffActive: 0,
     todayRevenue: 0,
     formResponses: 0,
-    galleryViews: 0
+    galleryViews: 0,
+    servicesRendered:0
   });
   const [liveFeed, setLiveFeed] = useState([]);
   const [recentWork, setRecentWork] = useState([]);
@@ -844,6 +849,7 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
         staffActive: activeStaffList.length,
         todayRevenue: todayRevenue,
         formResponses: todayForms.length,
+        servicesRendered:todayWorkLogs.length,
         galleryViews: 0
       });
       
@@ -897,6 +903,17 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
     {
       title: 'Form Responses',
       value: dashboardStats.formResponses,
+      icon: '📝',
+      color: '#F59E0B',
+      bgColor: '#FEF3C7',
+      label: 'New',
+      onClick: () => alert('Forms management coming soon!')
+    },
+       {
+                    // { id: 'service', label: 'Services', icon: '💼', count: liveFeed.filter(item => item.type === 'service').length },
+
+      title: 'Services',
+      value: dashboardStats.servicesRendered,
       icon: '📝',
       color: '#F59E0B',
       bgColor: '#FEF3C7',
@@ -1133,863 +1150,863 @@ const DashboardContent = ({ salonData, ownerData, salonId, setActiveTab }) => {
   );
 };
 
-const ReportsContent = ({ salonId }) => {
-  const [dateRange, setDateRange] = useState('today');
-  const [loading, setLoading] = useState(false);
-    const [debugInfo, setDebugInfo] = useState('');
-  const [reportsData, setReportsData] = useState({
-    totalRevenue: 0,
-    servicesDone: 0,
-    staffActive: 0,
-    newClients: 0,
-    vsYesterday: 0,
-    avgPerHour: 0,
-    hoursWorked: 0,
-    returnRate: 0,
-    staffPerformance: [],
-    popularServices: [],
-    workLogs: [],
-    newClientsList: []
-  });
-  const debugLog = (message, data = null) => {
-    console.log(`🔍 ${message}`, data);
-    setDebugInfo(prev => prev + `\n${message}: ${JSON.stringify(data?.slice(0, 2) || data)}`);
-  };
+// const ReportsContent = ({ salonId }) => {
+//   const [dateRange, setDateRange] = useState('today');
+//   const [loading, setLoading] = useState(false);
+//     const [debugInfo, setDebugInfo] = useState('');
+//   const [reportsData, setReportsData] = useState({
+//     totalRevenue: 0,
+//     servicesDone: 0,
+//     staffActive: 0,
+//     newClients: 0,
+//     vsYesterday: 0,
+//     avgPerHour: 0,
+//     hoursWorked: 0,
+//     returnRate: 0,
+//     staffPerformance: [],
+//     popularServices: [],
+//     workLogs: [],
+//     newClientsList: []
+//   });
+//   const debugLog = (message, data = null) => {
+//     console.log(`🔍 ${message}`, data);
+//     setDebugInfo(prev => prev + `\n${message}: ${JSON.stringify(data?.slice(0, 2) || data)}`);
+//   };
 
-  const dateRanges = [
-    { id: 'today', label: 'Today' },
-    { id: 'yesterday', label: 'Yesterday' },
-    { id: 'week', label: 'This Week' },
-    { id: 'month', label: 'This Month' }
-  ];
+//   const dateRanges = [
+//     { id: 'today', label: 'Today' },
+//     { id: 'yesterday', label: 'Yesterday' },
+//     { id: 'week', label: 'This Week' },
+//     { id: 'month', label: 'This Month' }
+//   ];
 
-  const getDateLabel = () => {
-    const today = new Date();
-    const options = { month: 'short', day: 'numeric', year: 'numeric' };
+//   const getDateLabel = () => {
+//     const today = new Date();
+//     const options = { month: 'short', day: 'numeric', year: 'numeric' };
     
-    if (dateRange === 'today') {
-      return today.toLocaleDateString('en-US', options);
-    } else if (dateRange === 'yesterday') {
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-      return yesterday.toLocaleDateString('en-US', options);
-    } else if (dateRange === 'week') {
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      const endOfWeek = new Date(today);
-      endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
-      return `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-    } else {
-      return today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    }
-  };
+//     if (dateRange === 'today') {
+//       return today.toLocaleDateString('en-US', options);
+//     } else if (dateRange === 'yesterday') {
+//       const yesterday = new Date(today);
+//       yesterday.setDate(today.getDate() - 1);
+//       return yesterday.toLocaleDateString('en-US', options);
+//     } else if (dateRange === 'week') {
+//       const startOfWeek = new Date(today);
+//       startOfWeek.setDate(today.getDate() - today.getDay());
+//       const endOfWeek = new Date(today);
+//       endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+//       return `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+//     } else {
+//       return today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+//     }
+//   };
 
-  const fetchReportsData = useCallback(async () => {
-    setLoading(true);
-    setDebugInfo('Starting fetch...\n');
+//   const fetchReportsData = useCallback(async () => {
+//     setLoading(true);
+//     setDebugInfo('Starting fetch...\n');
     
-    try {
-      debugLog('Fetching for salonId:', salonId);
+//     try {
+//       debugLog('Fetching for salonId:', salonId);
       
-      // Let's check ALL collections to see what data we have
-      const collectionsToCheck = [
-        'workLogs',
-        'consultations', 
-        'clockRecords',
-        'staffWorkLogs', // Check if this exists
-        'services', // For service names
-        'salons' // For staff list
-      ];
+//       // Let's check ALL collections to see what data we have
+//       const collectionsToCheck = [
+//         'workLogs',
+//         'consultations', 
+//         'clockRecords',
+//         'staffWorkLogs', // Check if this exists
+//         'services', // For service names
+//         'salons' // For staff list
+//       ];
       
-      // 1. FIRST: Let's check what work logs we have
-      const workLogsQuery = query(
-        collection(db, 'workLogs'),
-        where('salonId', '==', salonId),
-        orderBy('timestamp', 'desc')
-      );
+//       // 1. FIRST: Let's check what work logs we have
+//       const workLogsQuery = query(
+//         collection(db, 'workLogs'),
+//         where('salonId', '==', salonId),
+//         orderBy('timestamp', 'desc')
+//       );
       
-      const workLogsSnapshot = await getDocs(workLogsQuery);
-      const allWorkLogs = workLogsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+//       const workLogsSnapshot = await getDocs(workLogsQuery);
+//       const allWorkLogs = workLogsSnapshot.docs.map(doc => ({
+//         id: doc.id,
+//         ...doc.data()
+//       }));
       
-      debugLog('Work logs found:', allWorkLogs);
+//       debugLog('Work logs found:', allWorkLogs);
       
-      if (allWorkLogs.length === 0) {
-        debugLog('⚠️ No work logs found. Checking other collections...');
+//       if (allWorkLogs.length === 0) {
+//         debugLog('⚠️ No work logs found. Checking other collections...');
         
-        // Check consultations
-        const consultationsQuery = query(
-          collection(db, 'consultations'),
-          where('salonId', '==', salonId)
-        );
-        const consultationsSnapshot = await getDocs(consultationsQuery);
-        const consultations = consultationsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        debugLog('Consultations found:', consultations);
+//         // Check consultations
+//         const consultationsQuery = query(
+//           collection(db, 'consultations'),
+//           where('salonId', '==', salonId)
+//         );
+//         const consultationsSnapshot = await getDocs(consultationsQuery);
+//         const consultations = consultationsSnapshot.docs.map(doc => ({
+//           id: doc.id,
+//           ...doc.data()
+//         }));
+//         debugLog('Consultations found:', consultations);
         
-        // Check clock records
-        const clockQuery = query(
-          collection(db, 'clockRecords'),
-          where('salonId', '==', salonId)
-        );
-        const clockSnapshot = await getDocs(clockQuery);
-        const clockRecords = clockSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        debugLog('Clock records found:', clockRecords);
+//         // Check clock records
+//         const clockQuery = query(
+//           collection(db, 'clockRecords'),
+//           where('salonId', '==', salonId)
+//         );
+//         const clockSnapshot = await getDocs(clockQuery);
+//         const clockRecords = clockSnapshot.docs.map(doc => ({
+//           id: doc.id,
+//           ...doc.data()
+//         }));
+//         debugLog('Clock records found:', clockRecords);
         
-        // Check staff collection
-        try {
-          const staffQuery = query(collection(db, 'salons', salonId, 'staff'));
-          const staffSnapshot = await getDocs(staffQuery);
-          const staffList = staffSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          debugLog('Staff found:', staffList);
-        } catch (err) {
-          debugLog('Staff collection error:', err.message);
-        }
-      }
+//         // Check staff collection
+//         try {
+//           const staffQuery = query(collection(db, 'salons', salonId, 'staff'));
+//           const staffSnapshot = await getDocs(staffQuery);
+//           const staffList = staffSnapshot.docs.map(doc => ({
+//             id: doc.id,
+//             ...doc.data()
+//           }));
+//           debugLog('Staff found:', staffList);
+//         } catch (err) {
+//           debugLog('Staff collection error:', err.message);
+//         }
+//       }
       
-      // Filter by date range
-      const now = new Date();
-      const today = now.toISOString().split('T')[0];
-      const yesterday = new Date(now.setDate(now.getDate() - 1)).toISOString().split('T')[0];
+//       // Filter by date range
+//       const now = new Date();
+//       const today = now.toISOString().split('T')[0];
+//       const yesterday = new Date(now.setDate(now.getDate() - 1)).toISOString().split('T')[0];
       
-      debugLog('Today:', today);
-      debugLog('Yesterday:', yesterday);
+//       debugLog('Today:', today);
+//       debugLog('Yesterday:', yesterday);
       
-      let filteredLogs = allWorkLogs;
+//       let filteredLogs = allWorkLogs;
       
-      if (dateRange === 'today') {
-        filteredLogs = allWorkLogs.filter(log => {
-          const logDate = log.date || (log.timestamp?.toDate?.()?.toISOString().split('T')[0]);
-          debugLog(`Checking log date: ${logDate} vs today: ${today}`);
-          return logDate === today;
-        });
-      } else if (dateRange === 'yesterday') {
-        filteredLogs = allWorkLogs.filter(log => {
-          const logDate = log.date || (log.timestamp?.toDate?.()?.toISOString().split('T')[0]);
-          return logDate === yesterday;
-        });
-      }
+//       if (dateRange === 'today') {
+//         filteredLogs = allWorkLogs.filter(log => {
+//           const logDate = log.date || (log.timestamp?.toDate?.()?.toISOString().split('T')[0]);
+//           debugLog(`Checking log date: ${logDate} vs today: ${today}`);
+//           return logDate === today;
+//         });
+//       } else if (dateRange === 'yesterday') {
+//         filteredLogs = allWorkLogs.filter(log => {
+//           const logDate = log.date || (log.timestamp?.toDate?.()?.toISOString().split('T')[0]);
+//           return logDate === yesterday;
+//         });
+//       }
       
-      debugLog('Filtered logs:', filteredLogs);
+//       debugLog('Filtered logs:', filteredLogs);
       
-      // Calculate REAL metrics from actual data
-      const totalRevenue = filteredLogs.reduce((sum, log) => {
-        const price = parseFloat(log.servicePrice) || 
-                     parseFloat(log.price) || 
-                     parseFloat(log.amount) || 0;
-        return sum + price;
-      }, 0);
+//       // Calculate REAL metrics from actual data
+//       const totalRevenue = filteredLogs.reduce((sum, log) => {
+//         const price = parseFloat(log.servicePrice) || 
+//                      parseFloat(log.price) || 
+//                      parseFloat(log.amount) || 0;
+//         return sum + price;
+//       }, 0);
       
-      const servicesDone = filteredLogs.length;
+//       const servicesDone = filteredLogs.length;
       
-      // Staff performance from REAL data
-      const staffMap = {};
-      filteredLogs.forEach(log => {
-        const staffName = log.staffName || 
-                         log.staff || 
-                         log.employeeName || 
-                         'Unknown Staff';
-        const price = parseFloat(log.servicePrice) || 
-                     parseFloat(log.price) || 
-                     parseFloat(log.amount) || 0;
+//       // Staff performance from REAL data
+//       const staffMap = {};
+//       filteredLogs.forEach(log => {
+//         const staffName = log.staffName || 
+//                          log.staff || 
+//                          log.employeeName || 
+//                          'Unknown Staff';
+//         const price = parseFloat(log.servicePrice) || 
+//                      parseFloat(log.price) || 
+//                      parseFloat(log.amount) || 0;
         
-        if (!staffMap[staffName]) {
-          staffMap[staffName] = {
-            name: staffName,
-            revenue: 0,
-            services: 0
-          };
-        }
-        staffMap[staffName].revenue += price;
-        staffMap[staffName].services += 1;
-      });
+//         if (!staffMap[staffName]) {
+//           staffMap[staffName] = {
+//             name: staffName,
+//             revenue: 0,
+//             services: 0
+//           };
+//         }
+//         staffMap[staffName].revenue += price;
+//         staffMap[staffName].services += 1;
+//       });
       
-      const staffPerformance = Object.values(staffMap)
-        .sort((a, b) => b.revenue - a.revenue);
+//       const staffPerformance = Object.values(staffMap)
+//         .sort((a, b) => b.revenue - a.revenue);
       
-      // Popular services from REAL data
-      const serviceMap = {};
-      filteredLogs.forEach(log => {
-        const serviceName = log.serviceName || 
-                           log.service || 
-                           log.description || 
-                           'Unknown Service';
-        const price = parseFloat(log.servicePrice) || 
-                     parseFloat(log.price) || 
-                     parseFloat(log.amount) || 0;
+//       // Popular services from REAL data
+//       const serviceMap = {};
+//       filteredLogs.forEach(log => {
+//         const serviceName = log.serviceName || 
+//                            log.service || 
+//                            log.description || 
+//                            'Unknown Service';
+//         const price = parseFloat(log.servicePrice) || 
+//                      parseFloat(log.price) || 
+//                      parseFloat(log.amount) || 0;
         
-        if (!serviceMap[serviceName]) {
-          serviceMap[serviceName] = {
-            name: serviceName,
-            count: 0,
-            revenue: 0
-          };
-        }
-        serviceMap[serviceName].count += 1;
-        serviceMap[serviceName].revenue += price;
-      });
+//         if (!serviceMap[serviceName]) {
+//           serviceMap[serviceName] = {
+//             name: serviceName,
+//             count: 0,
+//             revenue: 0
+//           };
+//         }
+//         serviceMap[serviceName].count += 1;
+//         serviceMap[serviceName].revenue += price;
+//       });
       
-      const popularServices = Object.values(serviceMap)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
+//       const popularServices = Object.values(serviceMap)
+//         .sort((a, b) => b.count - a.count)
+//         .slice(0, 5);
       
-      // Get staff active from clock records
-      let staffActive = 0;
-      try {
-        const activeClockQuery = query(
-          collection(db, 'clockRecords'),
-          where('salonId', '==', salonId),
-          where('clockOut', '==', null)
-        );
-        const activeClockSnapshot = await getDocs(activeClockQuery);
-        staffActive = activeClockSnapshot.docs.length;
-        debugLog('Active staff from clock records:', staffActive);
-      } catch (err) {
-        debugLog('Clock records error:', err.message);
-        staffActive = staffPerformance.length; // Fallback
-      }
+//       // Get staff active from clock records
+//       let staffActive = 0;
+//       try {
+//         const activeClockQuery = query(
+//           collection(db, 'clockRecords'),
+//           where('salonId', '==', salonId),
+//           where('clockOut', '==', null)
+//         );
+//         const activeClockSnapshot = await getDocs(activeClockQuery);
+//         staffActive = activeClockSnapshot.docs.length;
+//         debugLog('Active staff from clock records:', staffActive);
+//       } catch (err) {
+//         debugLog('Clock records error:', err.message);
+//         staffActive = staffPerformance.length; // Fallback
+//       }
       
-      // Get new clients from consultations
-      let newClients = 0;
-      let newClientsList = [];
-      try {
-        const consultationsQuery = query(
-          collection(db, 'consultations'),
-          where('salonId', '==', salonId),
-          where('createdAt', '>=', new Date(new Date().setHours(0, 0, 0, 0)))
-        );
-        const consultationsSnapshot = await getDocs(consultationsQuery);
-        newClientsList = consultationsSnapshot.docs.map(doc => ({
-          name: doc.data().clientName || 'Unknown Client',
-          revenue: 0, // We'll calculate this later
-          services: 1
-        }));
-        newClients = newClientsList.length;
-        debugLog('New clients from consultations:', newClientsList);
-      } catch (err) {
-        debugLog('Consultations error:', err.message);
-      }
+//       // Get new clients from consultations
+//       let newClients = 0;
+//       let newClientsList = [];
+//       try {
+//         const consultationsQuery = query(
+//           collection(db, 'consultations'),
+//           where('salonId', '==', salonId),
+//           where('createdAt', '>=', new Date(new Date().setHours(0, 0, 0, 0)))
+//         );
+//         const consultationsSnapshot = await getDocs(consultationsQuery);
+//         newClientsList = consultationsSnapshot.docs.map(doc => ({
+//           name: doc.data().clientName || 'Unknown Client',
+//           revenue: 0, // We'll calculate this later
+//           services: 1
+//         }));
+//         newClients = newClientsList.length;
+//         debugLog('New clients from consultations:', newClientsList);
+//       } catch (err) {
+//         debugLog('Consultations error:', err.message);
+//       }
       
-      // Calculate yesterday's revenue for comparison
-      let vsYesterday = 0;
-      if (dateRange === 'today') {
-        const yesterdayLogs = allWorkLogs.filter(log => {
-          const logDate = log.date || (log.timestamp?.toDate?.()?.toISOString().split('T')[0]);
-          return logDate === yesterday;
-        });
+//       // Calculate yesterday's revenue for comparison
+//       let vsYesterday = 0;
+//       if (dateRange === 'today') {
+//         const yesterdayLogs = allWorkLogs.filter(log => {
+//           const logDate = log.date || (log.timestamp?.toDate?.()?.toISOString().split('T')[0]);
+//           return logDate === yesterday;
+//         });
         
-        const yesterdayRevenue = yesterdayLogs.reduce((sum, log) => {
-          const price = parseFloat(log.servicePrice) || 
-                       parseFloat(log.price) || 
-                       parseFloat(log.amount) || 0;
-          return sum + price;
-        }, 0);
+//         const yesterdayRevenue = yesterdayLogs.reduce((sum, log) => {
+//           const price = parseFloat(log.servicePrice) || 
+//                        parseFloat(log.price) || 
+//                        parseFloat(log.amount) || 0;
+//           return sum + price;
+//         }, 0);
         
-        vsYesterday = totalRevenue - yesterdayRevenue;
-        debugLog('Yesterday revenue:', yesterdayRevenue);
-      }
+//         vsYesterday = totalRevenue - yesterdayRevenue;
+//         debugLog('Yesterday revenue:', yesterdayRevenue);
+//       }
       
-      // Update state with REAL data
-      setReportsData({
-        totalRevenue,
-        servicesDone,
-        staffActive,
-        newClients,
-        vsYesterday,
-        avgPerHour: servicesDone > 0 ? (servicesDone / 10).toFixed(1) : 0,
-        hoursWorked: staffActive * 8,
-        returnRate: 80, // Hardcoded for now
-        staffPerformance,
-        popularServices,
-        workLogs: filteredLogs.slice(0, 20),
-        newClientsList
-      });
+//       // Update state with REAL data
+//       setReportsData({
+//         totalRevenue,
+//         servicesDone,
+//         staffActive,
+//         newClients,
+//         vsYesterday,
+//         avgPerHour: servicesDone > 0 ? (servicesDone / 10).toFixed(1) : 0,
+//         hoursWorked: staffActive * 8,
+//         returnRate: 80, // Hardcoded for now
+//         staffPerformance,
+//         popularServices,
+//         workLogs: filteredLogs.slice(0, 20),
+//         newClientsList
+//       });
       
-      debugLog('✅ Final reports data calculated');
+//       debugLog('✅ Final reports data calculated');
       
-    } catch (error) {
-      debugLog('❌ Error fetching reports:', error.message);
-      console.error('Full error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [salonId, dateRange]);
+//     } catch (error) {
+//       debugLog('❌ Error fetching reports:', error.message);
+//       console.error('Full error:', error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, [salonId, dateRange]);
 
-  useEffect(() => {
-    fetchReportsData();
-  }, [fetchReportsData]);
+//   useEffect(() => {
+//     fetchReportsData();
+//   }, [fetchReportsData]);
 
-  // Simple debug view to show what data we're getting
-  const renderDebugView = () => (
-    <div style={{
-      background: '#1F2937',
-      color: 'white',
-      padding: '12px',
-      borderRadius: '8px',
-      margin: '10px',
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      maxHeight: '200px',
-      overflowY: 'auto',
-      whiteSpace: 'pre-wrap'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <strong>Debug Info:</strong>
-        <button 
-          onClick={() => setDebugInfo('')}
-          style={{ background: 'none', border: 'none', color: '#60A5FA', cursor: 'pointer' }}
-        >
-          Clear
-        </button>
-      </div>
-      {debugInfo || 'No debug info yet...'}
-    </div>
-  );
-  useEffect(() => {
-    fetchReportsData();
-  }, [fetchReportsData]);
+//   // Simple debug view to show what data we're getting
+//   const renderDebugView = () => (
+//     <div style={{
+//       background: '#1F2937',
+//       color: 'white',
+//       padding: '12px',
+//       borderRadius: '8px',
+//       margin: '10px',
+//       fontSize: '11px',
+//       fontFamily: 'monospace',
+//       maxHeight: '200px',
+//       overflowY: 'auto',
+//       whiteSpace: 'pre-wrap'
+//     }}>
+//       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+//         <strong>Debug Info:</strong>
+//         <button 
+//           onClick={() => setDebugInfo('')}
+//           style={{ background: 'none', border: 'none', color: '#60A5FA', cursor: 'pointer' }}
+//         >
+//           Clear
+//         </button>
+//       </div>
+//       {debugInfo || 'No debug info yet...'}
+//     </div>
+//   );
+//   useEffect(() => {
+//     fetchReportsData();
+//   }, [fetchReportsData]);
 
-  const handleRefresh = () => {
-    fetchReportsData();
-  };
+//   const handleRefresh = () => {
+//     fetchReportsData();
+//   };
 
-  const handleEmailReport = () => {
-    // Simple email report function
-    const subject = `${getDateLabel()} Report - ${salonData?.name || 'Salon'}`;
-    const body = `
-Date: ${getDateLabel()}
+//   const handleEmailReport = () => {
+//     // Simple email report function
+//     const subject = `${getDateLabel()} Report - ${salonData?.name || 'Salon'}`;
+//     const body = `
+// Date: ${getDateLabel()}
 
-QUICK NUMBERS:
-- Total Revenue: R${reportsData.totalRevenue}
-- Services Done: ${reportsData.servicesDone}
-- Staff Active: ${reportsData.staffActive}/${reportsData.totalStaff || 5}
-- New Clients: ${reportsData.newClients}
+// QUICK NUMBERS:
+// - Total Revenue: R${reportsData.totalRevenue}
+// - Services Done: ${reportsData.servicesDone}
+// - Staff Active: ${reportsData.staffActive}/${reportsData.totalStaff || 5}
+// - New Clients: ${reportsData.newClients}
 
-TOP STAFF:
-${reportsData.staffPerformance.map((staff, i) => `${i + 1}. ${staff.name} - R${staff.revenue} • ${staff.services} services`).join('\n')}
+// TOP STAFF:
+// ${reportsData.staffPerformance.map((staff, i) => `${i + 1}. ${staff.name} - R${staff.revenue} • ${staff.services} services`).join('\n')}
 
-MOST POPULAR SERVICES:
-${reportsData.popularServices.map((service, i) => `${i + 1}. ${service.name} - ${service.count} times • R${service.revenue}`).join('\n')}
-    `.trim();
+// MOST POPULAR SERVICES:
+// ${reportsData.popularServices.map((service, i) => `${i + 1}. ${service.name} - ${service.count} times • R${service.revenue}`).join('\n')}
+//     `.trim();
     
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  };
+//     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+//   };
 
-  const formatTime = (timestamp) => {
-    if (!timestamp) return '--:--';
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '--:--';
-    }
-  };
+//   const formatTime = (timestamp) => {
+//     if (!timestamp) return '--:--';
+//     try {
+//       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+//       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+//     } catch {
+//       return '--:--';
+//     }
+//   };
 
-  if (loading) {
-    return (
-      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-        <div className="loading-spinner"></div>
-        <p style={{ color: '#6c757d', marginTop: '16px' }}>Loading reports...</p>
-      </div>
-    );
-  }
+//   if (loading) {
+//     return (
+//       <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+//         <div className="loading-spinner"></div>
+//         <p style={{ color: '#6c757d', marginTop: '16px' }}>Loading reports...</p>
+//       </div>
+//     );
+//   }
 
-  return (
-    <div style={{ 
-      padding: '0 0 80px 0', // Extra bottom padding for action buttons
-      minHeight: '100vh'
-    }}>
-      {/* Header */}
-      <div style={{ 
-        padding: '20px 20px 16px',
-        background: 'white',
-        borderBottom: '1px solid #e9ecef'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-          <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '600', margin: '0 0 4px 0' }}>
-              Reports
-            </h1>
-            <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
-              {getDateLabel()}
-            </p>
-          </div>
+//   return (
+//     <div style={{ 
+//       padding: '0 0 80px 0', // Extra bottom padding for action buttons
+//       minHeight: '100vh'
+//     }}>
+//       {/* Header */}
+//       <div style={{ 
+//         padding: '20px 20px 16px',
+//         background: 'white',
+//         borderBottom: '1px solid #e9ecef'
+//       }}>
+//         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+//           <div>
+//             <h1 style={{ fontSize: '24px', fontWeight: '600', margin: '0 0 4px 0' }}>
+//               Reports
+//             </h1>
+//             <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
+//               {getDateLabel()}
+//             </p>
+//           </div>
           
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #e9ecef',
-              borderRadius: '8px',
-              fontSize: '14px',
-              background: 'white',
-              minWidth: '120px'
-            }}
-          >
-            {dateRanges.map(range => (
-              <option key={range.id} value={range.id}>{range.label}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+//           <select
+//             value={dateRange}
+//             onChange={(e) => setDateRange(e.target.value)}
+//             style={{
+//               padding: '8px 16px',
+//               border: '1px solid #e9ecef',
+//               borderRadius: '8px',
+//               fontSize: '14px',
+//               background: 'white',
+//               minWidth: '120px'
+//             }}
+//           >
+//             {dateRanges.map(range => (
+//               <option key={range.id} value={range.id}>{range.label}</option>
+//             ))}
+//           </select>
+//         </div>
+//       </div>
 
-      {/* Quick Numbers Grid */}
-      <div style={{ 
-        padding: '20px',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '12px'
-      }}>
-        {/* Box 1: Money */}
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '16px',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              background: '#10B98120',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              color: '#10B981'
-            }}>
-              💰
-            </div>
-            <div style={{ fontSize: '14px', color: '#6c757d' }}>TOTAL REVENUE</div>
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
-            R{reportsData.totalRevenue}
-          </div>
-          <div style={{ 
-            fontSize: '12px', 
-            color: reportsData.vsYesterday >= 0 ? '#10B981' : '#EF4444',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}>
-            {reportsData.vsYesterday >= 0 ? '↑' : '↓'} R{Math.abs(reportsData.vsYesterday)} vs yesterday
-          </div>
-        </div>
+//       {/* Quick Numbers Grid */}
+//       <div style={{ 
+//         padding: '20px',
+//         display: 'grid',
+//         gridTemplateColumns: '1fr 1fr',
+//         gap: '12px'
+//       }}>
+//         {/* Box 1: Money */}
+//         <div style={{
+//           background: 'white',
+//           borderRadius: '12px',
+//           padding: '16px',
+//           border: '1px solid #e9ecef'
+//         }}>
+//           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+//             <div style={{
+//               width: '36px',
+//               height: '36px',
+//               background: '#10B98120',
+//               borderRadius: '10px',
+//               display: 'flex',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//               fontSize: '18px',
+//               color: '#10B981'
+//             }}>
+//               💰
+//             </div>
+//             <div style={{ fontSize: '14px', color: '#6c757d' }}>TOTAL REVENUE</div>
+//           </div>
+//           <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
+//             R{reportsData.totalRevenue}
+//           </div>
+//           <div style={{ 
+//             fontSize: '12px', 
+//             color: reportsData.vsYesterday >= 0 ? '#10B981' : '#EF4444',
+//             display: 'flex',
+//             alignItems: 'center',
+//             gap: '4px'
+//           }}>
+//             {reportsData.vsYesterday >= 0 ? '↑' : '↓'} R{Math.abs(reportsData.vsYesterday)} vs yesterday
+//           </div>
+//         </div>
 
-        {/* Box 2: Services */}
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '16px',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              background: '#3B82F620',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              color: '#3B82F6'
-            }}>
-              📋
-            </div>
-            <div style={{ fontSize: '14px', color: '#6c757d' }}>SERVICES DONE</div>
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
-            {reportsData.servicesDone}
-          </div>
-          <div style={{ fontSize: '12px', color: '#6c757d' }}>
-            {reportsData.avgPerHour} / hour average
-          </div>
-        </div>
+//         {/* Box 2: Services */}
+//         <div style={{
+//           background: 'white',
+//           borderRadius: '12px',
+//           padding: '16px',
+//           border: '1px solid #e9ecef'
+//         }}>
+//           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+//             <div style={{
+//               width: '36px',
+//               height: '36px',
+//               background: '#3B82F620',
+//               borderRadius: '10px',
+//               display: 'flex',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//               fontSize: '18px',
+//               color: '#3B82F6'
+//             }}>
+//               📋
+//             </div>
+//             <div style={{ fontSize: '14px', color: '#6c757d' }}>SERVICES DONE</div>
+//           </div>
+//           <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
+//             {reportsData.servicesDone}
+//           </div>
+//           <div style={{ fontSize: '12px', color: '#6c757d' }}>
+//             {reportsData.avgPerHour} / hour average
+//           </div>
+//         </div>
 
-        {/* Box 3: Staff */}
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '16px',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              background: '#8B5CF620',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              color: '#8B5CF6'
-            }}>
-              👥
-            </div>
-            <div style={{ fontSize: '14px', color: '#6c757d' }}>STAFF ACTIVE</div>
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
-            {reportsData.staffActive} / 5
-          </div>
-          <div style={{ fontSize: '12px', color: '#6c757d' }}>
-            {reportsData.hoursWorked} hours worked
-          </div>
-        </div>
+//         {/* Box 3: Staff */}
+//         <div style={{
+//           background: 'white',
+//           borderRadius: '12px',
+//           padding: '16px',
+//           border: '1px solid #e9ecef'
+//         }}>
+//           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+//             <div style={{
+//               width: '36px',
+//               height: '36px',
+//               background: '#8B5CF620',
+//               borderRadius: '10px',
+//               display: 'flex',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//               fontSize: '18px',
+//               color: '#8B5CF6'
+//             }}>
+//               👥
+//             </div>
+//             <div style={{ fontSize: '14px', color: '#6c757d' }}>STAFF ACTIVE</div>
+//           </div>
+//           <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
+//             {reportsData.staffActive} / 5
+//           </div>
+//           <div style={{ fontSize: '12px', color: '#6c757d' }}>
+//             {reportsData.hoursWorked} hours worked
+//           </div>
+//         </div>
 
-        {/* Box 4: Clients */}
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '16px',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              background: '#F59E0B20',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              color: '#F59E0B'
-            }}>
-              👤
-            </div>
-            <div style={{ fontSize: '14px', color: '#6c757d' }}>NEW CLIENTS</div>
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
-            {reportsData.newClients}
-          </div>
-          <div style={{ fontSize: '12px', color: '#6c757d' }}>
-            {reportsData.returnRate}% return rate
-          </div>
-        </div>
-      </div>
+//         {/* Box 4: Clients */}
+//         <div style={{
+//           background: 'white',
+//           borderRadius: '12px',
+//           padding: '16px',
+//           border: '1px solid #e9ecef'
+//         }}>
+//           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+//             <div style={{
+//               width: '36px',
+//               height: '36px',
+//               background: '#F59E0B20',
+//               borderRadius: '10px',
+//               display: 'flex',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//               fontSize: '18px',
+//               color: '#F59E0B'
+//             }}>
+//               👤
+//             </div>
+//             <div style={{ fontSize: '14px', color: '#6c757d' }}>NEW CLIENTS</div>
+//           </div>
+//           <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
+//             {reportsData.newClients}
+//           </div>
+//           <div style={{ fontSize: '12px', color: '#6c757d' }}>
+//             {reportsData.returnRate}% return rate
+//           </div>
+//         </div>
+//       </div>
 
-      {/* Staff Performance */}
-      <div style={{ padding: '0 20px 20px' }}>
-        <div style={{ 
-          background: 'white',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <div style={{ fontSize: '20px' }}>👑</div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>TOP STAFF TODAY</h3>
-          </div>
+//       {/* Staff Performance */}
+//       <div style={{ padding: '0 20px 20px' }}>
+//         <div style={{ 
+//           background: 'white',
+//           borderRadius: '12px',
+//           padding: '20px',
+//           border: '1px solid #e9ecef'
+//         }}>
+//           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+//             <div style={{ fontSize: '20px' }}>👑</div>
+//             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>TOP STAFF TODAY</h3>
+//           </div>
           
-          {reportsData.staffPerformance.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
-              No staff activity yet
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {reportsData.staffPerformance.map((staff, index) => (
-                <div 
-                  key={staff.name}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '12px',
-                    background: index < 3 ? '#f8fafc' : 'transparent',
-                    borderRadius: '8px',
-                    border: index < 3 ? '1px solid #e2e8f0' : 'none'
-                  }}
-                >
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    background: index === 0 ? '#FBBF24' : index === 1 ? '#D1D5DB' : index === 2 ? '#F59E0B' : '#e9ecef',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: index < 3 ? 'white' : '#6c757d',
-                    marginRight: '12px'
-                  }}>
-                    {index + 1}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '15px', fontWeight: '500', marginBottom: '4px' }}>
-                      {staff.name}
-                    </div>
-                    <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#6c757d' }}>
-                      <span>R{staff.revenue}</span>
-                      <span>•</span>
-                      <span>{staff.services} services</span>
-                      <span>•</span>
-                      <span>{staff.hours || 8}hrs</span>
-                    </div>
-                  </div>
-                  {index === 0 && (
-                    <div style={{ 
-                      fontSize: '20px',
-                      color: '#F59E0B'
-                    }}>
-                      👑
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+//           {reportsData.staffPerformance.length === 0 ? (
+//             <div style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
+//               No staff activity yet
+//             </div>
+//           ) : (
+//             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+//               {reportsData.staffPerformance.map((staff, index) => (
+//                 <div 
+//                   key={staff.name}
+//                   style={{
+//                     display: 'flex',
+//                     alignItems: 'center',
+//                     padding: '12px',
+//                     background: index < 3 ? '#f8fafc' : 'transparent',
+//                     borderRadius: '8px',
+//                     border: index < 3 ? '1px solid #e2e8f0' : 'none'
+//                   }}
+//                 >
+//                   <div style={{
+//                     width: '32px',
+//                     height: '32px',
+//                     background: index === 0 ? '#FBBF24' : index === 1 ? '#D1D5DB' : index === 2 ? '#F59E0B' : '#e9ecef',
+//                     borderRadius: '8px',
+//                     display: 'flex',
+//                     alignItems: 'center',
+//                     justifyContent: 'center',
+//                     fontSize: '14px',
+//                     fontWeight: '600',
+//                     color: index < 3 ? 'white' : '#6c757d',
+//                     marginRight: '12px'
+//                   }}>
+//                     {index + 1}
+//                   </div>
+//                   <div style={{ flex: 1 }}>
+//                     <div style={{ fontSize: '15px', fontWeight: '500', marginBottom: '4px' }}>
+//                       {staff.name}
+//                     </div>
+//                     <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#6c757d' }}>
+//                       <span>R{staff.revenue}</span>
+//                       <span>•</span>
+//                       <span>{staff.services} services</span>
+//                       <span>•</span>
+//                       <span>{staff.hours || 8}hrs</span>
+//                     </div>
+//                   </div>
+//                   {index === 0 && (
+//                     <div style={{ 
+//                       fontSize: '20px',
+//                       color: '#F59E0B'
+//                     }}>
+//                       👑
+//                     </div>
+//                   )}
+//                 </div>
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
 
-      {/* Popular Services */}
-      <div style={{ padding: '0 20px 20px' }}>
-        <div style={{ 
-          background: 'white',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <div style={{ fontSize: '20px' }}>🏆</div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>MOST BOOKED TODAY</h3>
-          </div>
+//       {/* Popular Services */}
+//       <div style={{ padding: '0 20px 20px' }}>
+//         <div style={{ 
+//           background: 'white',
+//           borderRadius: '12px',
+//           padding: '20px',
+//           border: '1px solid #e9ecef'
+//         }}>
+//           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+//             <div style={{ fontSize: '20px' }}>🏆</div>
+//             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>MOST BOOKED TODAY</h3>
+//           </div>
           
-          {reportsData.popularServices.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
-              No services recorded yet
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {reportsData.popularServices.map((service, index) => (
-                <div 
-                  key={service.name}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '12px',
-                    background: index < 3 ? '#f8fafc' : 'transparent',
-                    borderRadius: '8px',
-                    border: index < 3 ? '1px solid #e2e8f0' : 'none'
-                  }}
-                >
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    background: index === 0 ? '#10B981' : index === 1 ? '#3B82F6' : index === 2 ? '#8B5CF6' : '#e9ecef',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: 'white',
-                    marginRight: '12px'
-                  }}>
-                    {index + 1}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '15px', fontWeight: '500', marginBottom: '4px' }}>
-                      {service.name}
-                    </div>
-                    <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#6c757d' }}>
-                      <span>{service.count} times</span>
-                      <span>•</span>
-                      <span>R{service.revenue}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+//           {reportsData.popularServices.length === 0 ? (
+//             <div style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
+//               No services recorded yet
+//             </div>
+//           ) : (
+//             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+//               {reportsData.popularServices.map((service, index) => (
+//                 <div 
+//                   key={service.name}
+//                   style={{
+//                     display: 'flex',
+//                     alignItems: 'center',
+//                     padding: '12px',
+//                     background: index < 3 ? '#f8fafc' : 'transparent',
+//                     borderRadius: '8px',
+//                     border: index < 3 ? '1px solid #e2e8f0' : 'none'
+//                   }}
+//                 >
+//                   <div style={{
+//                     width: '32px',
+//                     height: '32px',
+//                     background: index === 0 ? '#10B981' : index === 1 ? '#3B82F6' : index === 2 ? '#8B5CF6' : '#e9ecef',
+//                     borderRadius: '8px',
+//                     display: 'flex',
+//                     alignItems: 'center',
+//                     justifyContent: 'center',
+//                     fontSize: '16px',
+//                     fontWeight: '600',
+//                     color: 'white',
+//                     marginRight: '12px'
+//                   }}>
+//                     {index + 1}
+//                   </div>
+//                   <div style={{ flex: 1 }}>
+//                     <div style={{ fontSize: '15px', fontWeight: '500', marginBottom: '4px' }}>
+//                       {service.name}
+//                     </div>
+//                     <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#6c757d' }}>
+//                       <span>{service.count} times</span>
+//                       <span>•</span>
+//                       <span>R{service.revenue}</span>
+//                     </div>
+//                   </div>
+//                 </div>
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
 
-      {/* Today's Work Log */}
-      <div style={{ padding: '0 20px 20px' }}>
-        <div style={{ 
-          background: 'white',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '1px solid #e9ecef'
-        }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
-            TODAY'S WORK LOG
-          </h3>
+//       {/* Today's Work Log */}
+//       <div style={{ padding: '0 20px 20px' }}>
+//         <div style={{ 
+//           background: 'white',
+//           borderRadius: '12px',
+//           padding: '20px',
+//           border: '1px solid #e9ecef'
+//         }}>
+//           <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
+//             TODAY'S WORK LOG
+//           </h3>
           
-          {reportsData.workLogs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
-              No work logs for today
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {reportsData.workLogs.map((log, index) => (
-                <div 
-                  key={log.id}
-                  style={{
-                    padding: '12px',
-                    borderBottom: index < reportsData.workLogs.length - 1 ? '1px solid #f1f3f4' : 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ fontSize: '20px' }}>🕘</div>
-                      <span style={{ fontSize: '14px', fontWeight: '500' }}>
-                        {formatTime(log.timestamp)}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#10B981' }}>
-                      R{log.servicePrice || 0}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#1a1a1a', marginBottom: '4px' }}>
-                    {log.staffName || 'Unknown'} → {log.serviceName || 'Service'}
-                  </div>
-                  {log.clientName && (
-                    <div style={{ fontSize: '12px', color: '#6c757d' }}>
-                      Client: {log.clientName}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+//           {reportsData.workLogs.length === 0 ? (
+//             <div style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
+//               No work logs for today
+//             </div>
+//           ) : (
+//             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+//               {reportsData.workLogs.map((log, index) => (
+//                 <div 
+//                   key={log.id}
+//                   style={{
+//                     padding: '12px',
+//                     borderBottom: index < reportsData.workLogs.length - 1 ? '1px solid #f1f3f4' : 'none'
+//                   }}
+//                 >
+//                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+//                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+//                       <div style={{ fontSize: '20px' }}>🕘</div>
+//                       <span style={{ fontSize: '14px', fontWeight: '500' }}>
+//                         {formatTime(log.timestamp)}
+//                       </span>
+//                     </div>
+//                     <span style={{ fontSize: '16px', fontWeight: '600', color: '#10B981' }}>
+//                       R{log.servicePrice || 0}
+//                     </span>
+//                   </div>
+//                   <div style={{ fontSize: '14px', color: '#1a1a1a', marginBottom: '4px' }}>
+//                     {log.staffName || 'Unknown'} → {log.serviceName || 'Service'}
+//                   </div>
+//                   {log.clientName && (
+//                     <div style={{ fontSize: '12px', color: '#6c757d' }}>
+//                       Client: {log.clientName}
+//                     </div>
+//                   )}
+//                 </div>
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
 
-      {/* New Clients */}
-      {reportsData.newClients > 0 && (
-        <div style={{ padding: '0 20px 20px' }}>
-          <div style={{ 
-            background: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            border: '1px solid #e9ecef'
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
-              NEW CLIENTS TODAY
-            </h3>
+//       {/* New Clients */}
+//       {reportsData.newClients > 0 && (
+//         <div style={{ padding: '0 20px 20px' }}>
+//           <div style={{ 
+//             background: 'white',
+//             borderRadius: '12px',
+//             padding: '20px',
+//             border: '1px solid #e9ecef'
+//           }}>
+//             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
+//               NEW CLIENTS TODAY
+//             </h3>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {reportsData.newClientsList.map((client, index) => (
-                <div 
-                  key={index}
-                  style={{
-                    padding: '12px',
-                    borderBottom: index < reportsData.newClientsList.length - 1 ? '1px solid #f1f3f4' : 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                    <div style={{ fontSize: '15px', fontWeight: '500' }}>
-                      {client.name}
-                    </div>
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#10B981' }}>
-                      R{client.revenue}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6c757d' }}>
-                    {client.services} service{client.services !== 1 ? 's' : ''}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+//             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+//               {reportsData.newClientsList.map((client, index) => (
+//                 <div 
+//                   key={index}
+//                   style={{
+//                     padding: '12px',
+//                     borderBottom: index < reportsData.newClientsList.length - 1 ? '1px solid #f1f3f4' : 'none'
+//                   }}
+//                 >
+//                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+//                     <div style={{ fontSize: '15px', fontWeight: '500' }}>
+//                       {client.name}
+//                     </div>
+//                     <span style={{ fontSize: '14px', fontWeight: '600', color: '#10B981' }}>
+//                       R{client.revenue}
+//                     </span>
+//                   </div>
+//                   <div style={{ fontSize: '12px', color: '#6c757d' }}>
+//                     {client.services} service{client.services !== 1 ? 's' : ''}
+//                   </div>
+//                 </div>
+//               ))}
+//             </div>
+//           </div>
+//         </div>
+//       )}
 
-      {/* Action Buttons (Fixed at bottom) */}
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'white',
-        borderTop: '1px solid #e9ecef',
-        padding: '12px 20px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        gap: '12px',
-        zIndex: 100
-      }}>
-        <button
-          onClick={handleEmailReport}
-          style={{
-            flex: 1,
-            padding: '12px',
-            background: '#3B82F6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
-        >
-          📧 EMAIL
-        </button>
+//       {/* Action Buttons (Fixed at bottom) */}
+//       <div style={{
+//         position: 'fixed',
+//         bottom: 0,
+//         left: 0,
+//         right: 0,
+//         background: 'white',
+//         borderTop: '1px solid #e9ecef',
+//         padding: '12px 20px',
+//         display: 'flex',
+//         justifyContent: 'space-between',
+//         gap: '12px',
+//         zIndex: 100
+//       }}>
+//         <button
+//           onClick={handleEmailReport}
+//           style={{
+//             flex: 1,
+//             padding: '12px',
+//             background: '#3B82F6',
+//             color: 'white',
+//             border: 'none',
+//             borderRadius: '8px',
+//             fontSize: '14px',
+//             fontWeight: '500',
+//             cursor: 'pointer',
+//             display: 'flex',
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             gap: '8px'
+//           }}
+//         >
+//           📧 EMAIL
+//         </button>
         
-        <button
-          onClick={() => window.print()}
-          style={{
-            flex: 1,
-            padding: '12px',
-            background: '#6B7280',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}
-        >
-          🖨️ PRINT
-        </button>
+//         <button
+//           onClick={() => window.print()}
+//           style={{
+//             flex: 1,
+//             padding: '12px',
+//             background: '#6B7280',
+//             color: 'white',
+//             border: 'none',
+//             borderRadius: '8px',
+//             fontSize: '14px',
+//             fontWeight: '500',
+//             cursor: 'pointer',
+//             display: 'flex',
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             gap: '8px'
+//           }}
+//         >
+//           🖨️ PRINT
+//         </button>
         
-          <button
-      onClick={handleRefresh}
-      style={{
-        flex: 1,
-        padding: '12px',
-        background: '#10B981',
-        color: 'white',
-        border: 'none',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: '500',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px'
-      }}
-    >
-      🔄 REFRESH
-    </button>
-      </div>
-    </div>
-  );
-};
+//           <button
+//       onClick={handleRefresh}
+//       style={{
+//         flex: 1,
+//         padding: '12px',
+//         background: '#10B981',
+//         color: 'white',
+//         border: 'none',
+//         borderRadius: '8px',
+//         fontSize: '14px',
+//         fontWeight: '500',
+//         cursor: 'pointer',
+//         display: 'flex',
+//         alignItems: 'center',
+//         justifyContent: 'center',
+//         gap: '8px'
+//       }}
+//     >
+//       🔄 REFRESH
+//     </button>
+//       </div>
+//     </div>
+//   );
+// };
 // Staff Content Component
 const StaffContent = ({ salonId, ownerData }) => {
   const [staff, setStaff] = useState([]);

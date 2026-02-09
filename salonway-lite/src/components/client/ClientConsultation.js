@@ -211,19 +211,19 @@ const ClientConsultation = () => {
           {/* Show which staff it's assigned to */}
           {assignedStaffName && (
             <div className="staff-assignment-notice">
-              <div className="staff-info">
+              {/* <div className="staff-info">
                 <strong>Form assigned to:</strong>
                 <p>{assignedStaffName}</p>
-              </div>
+              </div> */}
               <p className="staff-note">
                 {assignedStaffName} will contact you directly about your appointment.
               </p>
             </div>
           )}
           
-          <p className="success-note">
+          {/* <p className="success-note">
             A staff member will contact you shortly to discuss your service.
-          </p>
+          </p> */}
           <div className="success-contact">
             <p>For immediate assistance, contact:</p>
             <p className="salon-info">{salon.name}</p>

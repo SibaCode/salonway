@@ -690,7 +690,7 @@ const StaffDashboard = () => {
           <h1>{salon.name}</h1>
           <p>{staff.name}</p>
         </div>
-        <button 
+        {/* <button 
           className="stats-btn"
           onClick={() => setShowStats(true)}
           style={{ 
@@ -706,7 +706,7 @@ const StaffDashboard = () => {
           }}
         >
           📊 Stats
-        </button>
+        </button> */}
       </header>
 
       {/* MAIN SECTION */}
@@ -740,7 +740,7 @@ const StaffDashboard = () => {
         </section>
 
         {/* QUICK STATS */}
-        <section className="quick-stats-section">
+        {/* <section className="quick-stats-section">
           <div className="stats-grid">
             <div className="stat-item">
               <div className="stat-icon">💰</div>
@@ -764,7 +764,7 @@ const StaffDashboard = () => {
               </div>
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* QUICK ACTIONS */}
         <section className="actions-section">
@@ -1074,7 +1074,7 @@ const StaffDashboard = () => {
             </div>
             
             {/* Staff info banner */}
-            <div className="staff-link-banner">
+            {/* <div className="staff-link-banner">
               <div className="staff-avatar">
                 {staff.name?.charAt(0) || 'S'}
               </div>
@@ -1082,9 +1082,9 @@ const StaffDashboard = () => {
                 <strong>Forms submitted via this link will come directly to you:</strong>
                 <p>{staff.name}</p>
               </div>
-            </div>
+            </div> */}
             
-            <p>Share this with your client:</p>
+            {/* <p>Share this with your client:</p> */}
             
             <div className="qr-code-container">
               <img 
@@ -1101,7 +1101,7 @@ const StaffDashboard = () => {
                   `;
                 }}
               />
-              <p className="qr-note">Scan with phone camera</p>
+              <p className="qr-note">Scan with the client phone camera</p>
             </div>
             
             <div className="link-container">
@@ -1125,21 +1125,21 @@ const StaffDashboard = () => {
                 📱 Share on WhatsApp
               </button>
               
-              <button
+              {/* <button
                 className="share-btn sms"
                 onClick={shareViaSMS}
               >
                 💬 Share via SMS
-              </button>
+              </button> */}
             </div>
             
-            <div className="share-instructions">
+            {/* <div className="share-instructions">
               <p><strong>Instructions for client:</strong></p>
               <p>1. Scan QR code or click link</p>
               <p>2. Fill health & service information</p>
               <p>3. Submit form</p>
               <p>4. Form will appear <strong>in your dashboard only</strong></p>
-            </div>
+            </div> */}
           </div>
         </div>
       )}
